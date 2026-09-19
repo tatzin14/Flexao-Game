@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste</title>
+</head>
+
+<body>
+
+<h1>TESTE DE CÂMERA</h1>
+
+<button id="botao">ABRIR CÂMERA</button>
+
+<p id="resultado">Aguardando...</p>
+
+<video id="video" autoplay playsinline width="100%"></video>
+
+<script>
+const botao = document.getElementById("botao");
+const resultado = document.getElementById("resultado");
+const video = document.getElementById("video");
+
+botao.addEventListener("click", async () => {
+
+    resultado.innerText = "Tentando abrir a câmera...";
+
+    try {
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+        });
+
+        video.srcObject = stream;
+
+        resultado.innerText = "CAMERA FUNCIONOU!";
+
+    } catch (erro) {
+
+    resultado.innerText =
+        "ERRO: " +
+        erro.name +
+        "\n\n" +
+        erro.message +
+        "\n\n" +
+        "mediaDevices: " +
+        (navigator.mediaDevices ? "existe" : "NÃO EXISTE");
+
+    console.error(erro);
+}
+});
+</script>
+
+</body>
+</html>
