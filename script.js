@@ -28,90 +28,123 @@ const hpText = document.getElementById("hpText");
 const score = document.getElementById("score");
 
 const startMenu = document.getElementById("startMenu");
-const menuStartButton = document.getElementById("menuStartButton");
+const menuStartButton =
+    document.getElementById("menuStartButton");
 
-const phaseNumber = document.getElementById("phaseNumber");
-const enemyName = document.getElementById("enemyName");
-const enemyIcon = document.getElementById("enemyIcon");
+const phaseNumber =
+    document.getElementById("phaseNumber");
+
+const enemyName =
+    document.getElementById("enemyName");
+
+const enemyIcon =
+    document.querySelector(".enemy-icon");
 
 const phaseCompleteScreen =
-    document.getElementById("phaseCompleteScreen");
+    document.getElementById(
+        "phaseCompleteScreen"
+    );
 
 const phaseCompleteIcon =
-    document.getElementById("phaseCompleteIcon");
+    document.getElementById(
+        "phaseCompleteIcon"
+    );
 
 const phaseCompleteText =
-    document.getElementById("phaseCompleteText");
+    document.getElementById(
+        "phaseCompleteText"
+    );
 
 const nextPhaseNumber =
-    document.getElementById("nextPhaseNumber");
+    document.getElementById(
+        "nextPhaseNumber"
+    );
 
 const nextPhaseButton =
-    document.getElementById("nextPhaseButton");
+    document.getElementById(
+        "nextPhaseButton"
+    );
 
 const hitEffect =
-    document.getElementById("hitEffect");
+    document.getElementById(
+        "hitEffect"
+    );
 
 const victoryScreen =
-    document.getElementById("victoryScreen");
+    document.getElementById(
+        "victoryScreen"
+    );
 
 const finalScore =
-    document.getElementById("finalScore");
+    document.getElementById(
+        "finalScore"
+    );
 
 const victoryReset =
-    document.getElementById("victoryReset");
+    document.getElementById(
+        "victoryReset"
+    );
 
 
 /* =========================================
-   CONFIGURAÇÕES
+   FASES
 ========================================= */
 
 const fases = [
+
     {
         numero: 1,
         nome: "FANTASMA",
         icone: "👻",
         vida: 10
     },
+
     {
         numero: 2,
         nome: "ESQUELETO",
         icone: "💀",
         vida: 15
     },
+
     {
         numero: 3,
         nome: "GOBLIN",
         icone: "👹",
         vida: 20
     },
+
     {
         numero: 4,
         nome: "ZUMBI",
         icone: "🧟",
         vida: 25
     },
+
     {
         numero: 5,
         nome: "BOSS",
         icone: "👿",
         vida: 30
     }
+
 ];
+
 
 let faseAtual = 0;
 
 let vidaInimigo = 0;
+
 let vidaMaxima = 0;
 
 let flexoes = 0;
+
 let pontos = 0;
 
 const pontosPorFlexao = 100;
 
 
 /* =========================================
-   MEDIA PIPE
+   MEDIAPIPE
 ========================================= */
 
 let poseLandmarker = null;
@@ -122,7 +155,8 @@ let processando = false;
 
 let ultimaDeteccao = 0;
 
-const intervaloDeteccao = 1000 / 20;
+const intervaloDeteccao =
+    1000 / 20;
 
 
 /* =========================================
@@ -132,6 +166,7 @@ const intervaloDeteccao = 1000 / 20;
 let estadoFlexao = "SUBINDO";
 
 let anguloSuaveEsquerdo = 180;
+
 let anguloSuaveDireito = 180;
 
 let ultimaFlexao = 0;
@@ -146,52 +181,91 @@ const tempoMinimoEntreFlexoes = 500;
 function calcularAngulo(a, b, c) {
 
     const ab = {
+
         x: a.x - b.x,
+
         y: a.y - b.y
+
     };
+
 
     const cb = {
+
         x: c.x - b.x,
+
         y: c.y - b.y
+
     };
 
+
     const produtoEscalar =
+
         ab.x * cb.x +
+
         ab.y * cb.y;
 
+
     const tamanhoAB =
+
         Math.sqrt(
+
             ab.x * ab.x +
+
             ab.y * ab.y
+
         );
+
 
     const tamanhoCB =
+
         Math.sqrt(
+
             cb.x * cb.x +
+
             cb.y * cb.y
+
         );
 
+
     if (
+
         tamanhoAB === 0 ||
+
         tamanhoCB === 0
+
     ) {
+
         return 180;
+
     }
 
+
     let cos =
+
         produtoEscalar /
+
         (tamanhoAB * tamanhoCB);
 
+
     cos = Math.max(
+
         -1,
+
         Math.min(1, cos)
+
     );
 
+
     return (
+
         Math.acos(cos) *
+
         180 /
+
         Math.PI
+
     );
+
 }
 
 
@@ -202,20 +276,32 @@ function calcularAngulo(a, b, c) {
 async function criarDetector() {
 
     const vision =
+
         await FilesetResolver.forVisionTasks(
+
             "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
+
         );
+
 
     try {
 
         poseLandmarker =
+
             await PoseLandmarker.createFromOptions(
+
                 vision,
+
                 {
+
                     baseOptions: {
+
                         modelAssetPath:
+
                             "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+
                         delegate: "GPU"
+
                     },
 
                     runningMode: "VIDEO",
@@ -227,8 +313,11 @@ async function criarDetector() {
                     minPosePresenceConfidence: 0.5,
 
                     minTrackingConfidence: 0.5
+
                 }
+
             );
+
 
     } catch (erro) {
 
@@ -236,14 +325,23 @@ async function criarDetector() {
             "GPU falhou. Tentando CPU..."
         );
 
+
         poseLandmarker =
+
             await PoseLandmarker.createFromOptions(
+
                 vision,
+
                 {
+
                     baseOptions: {
+
                         modelAssetPath:
+
                             "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+
                         delegate: "CPU"
+
                     },
 
                     runningMode: "VIDEO",
@@ -255,18 +353,23 @@ async function criarDetector() {
                     minPosePresenceConfidence: 0.5,
 
                     minTrackingConfidence: 0.5
+
                 }
+
             );
+
     }
+
 
     console.log(
         "Detector criado com sucesso."
     );
+
 }
 
 
 /* =========================================
-   CÂMERA
+   INICIAR CÂMERA
 ========================================= */
 
 async function iniciarCamera() {
@@ -274,47 +377,74 @@ async function iniciarCamera() {
     try {
 
         cameraStream =
+
             await navigator.mediaDevices.getUserMedia({
+
                 video: {
+
                     facingMode: "user",
+
                     width: {
                         ideal: 480
                     },
+
                     height: {
                         ideal: 360
                     },
+
                     frameRate: {
                         max: 30
                     }
+
                 },
+
                 audio: false
+
             });
 
-        video.srcObject = cameraStream;
+
+        video.srcObject =
+            cameraStream;
+
 
         await video.play();
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
 
-        loading.style.display = "none";
+        canvas.width =
+            video.videoWidth;
+
+
+        canvas.height =
+            video.videoHeight;
+
+
+        loading.style.display =
+            "none";
+
 
         status.textContent =
             "Posicione-se diante da câmera.";
+
 
         requestAnimationFrame(
             loopCamera
         );
 
+
     } catch (erro) {
 
         console.error(erro);
 
+
         status.textContent =
             "Não foi possível acessar a câmera.";
 
-        loading.style.display = "block";
+
+        loading.style.display =
+            "block";
+
     }
+
 }
 
 
@@ -328,43 +458,70 @@ async function loopCamera(tempo) {
         loopCamera
     );
 
+
     if (
+
         !poseLandmarker ||
+
         video.readyState < 2
+
     ) {
+
         return;
+
     }
+
 
     if (
+
         tempo - ultimaDeteccao <
+
         intervaloDeteccao
+
     ) {
+
         return;
+
     }
 
-    ultimaDeteccao = tempo;
+
+    ultimaDeteccao =
+        tempo;
+
 
     if (processando) {
+
         return;
+
     }
 
-    processando = true;
+
+    processando =
+        true;
+
 
     try {
 
         const resultado =
+
             poseLandmarker.detectForVideo(
+
                 video,
+
                 performance.now()
+
             );
+
 
         desenharResultado(
             resultado
         );
 
+
         analisarFlexao(
             resultado
         );
+
 
     } catch (erro) {
 
@@ -373,10 +530,14 @@ async function loopCamera(tempo) {
             erro
         );
 
+
     } finally {
 
-        processando = false;
+        processando =
+            false;
+
     }
+
 }
 
 
@@ -387,71 +548,124 @@ async function loopCamera(tempo) {
 function desenharResultado(resultado) {
 
     ctx.clearRect(
+
         0,
+
         0,
+
         canvas.width,
+
         canvas.height
+
     );
 
+
     if (
+
         !resultado.landmarks ||
+
         resultado.landmarks.length === 0
+
     ) {
+
         return;
+
     }
+
 
     const landmarks =
         resultado.landmarks[0];
 
+
     const conexoes =
         PoseLandmarker.POSE_CONNECTIONS;
 
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "#a855f7";
+
+    ctx.lineWidth =
+        3;
+
+
+    ctx.strokeStyle =
+        "#a855f7";
+
 
     for (const conexao of conexoes) {
 
         const pontoA =
             landmarks[conexao.start];
 
+
         const pontoB =
             landmarks[conexao.end];
 
-        if (!pontoA || !pontoB) {
+
+        if (
+
+            !pontoA ||
+
+            !pontoB
+
+        ) {
+
             continue;
+
         }
+
 
         ctx.beginPath();
 
+
         ctx.moveTo(
+
             pontoA.x * canvas.width,
+
             pontoA.y * canvas.height
+
         );
+
 
         ctx.lineTo(
+
             pontoB.x * canvas.width,
+
             pontoB.y * canvas.height
+
         );
 
+
         ctx.stroke();
+
     }
 
-    ctx.fillStyle = "#ffffff";
+
+    ctx.fillStyle =
+        "#ffffff";
+
 
     for (const ponto of landmarks) {
 
         ctx.beginPath();
 
+
         ctx.arc(
+
             ponto.x * canvas.width,
+
             ponto.y * canvas.height,
+
             4,
+
             0,
+
             Math.PI * 2
+
         );
 
+
         ctx.fill();
+
     }
+
 }
 
 
@@ -462,65 +676,117 @@ function desenharResultado(resultado) {
 function analisarFlexao(resultado) {
 
     if (
+
         !resultado.landmarks ||
+
         resultado.landmarks.length === 0
+
     ) {
+
         return;
+
     }
+
 
     const p =
         resultado.landmarks[0];
 
-    const ombroEsquerdo = p[11];
-    const cotoveloEsquerdo = p[13];
-    const pulsoEsquerdo = p[15];
 
-    const ombroDireito = p[12];
-    const cotoveloDireito = p[14];
-    const pulsoDireito = p[16];
+    const ombroEsquerdo =
+        p[11];
+
+    const cotoveloEsquerdo =
+        p[13];
+
+    const pulsoEsquerdo =
+        p[15];
+
+
+    const ombroDireito =
+        p[12];
+
+    const cotoveloDireito =
+        p[14];
+
+    const pulsoDireito =
+        p[16];
+
 
     if (
+
         !ombroEsquerdo ||
+
         !cotoveloEsquerdo ||
+
         !pulsoEsquerdo ||
+
         !ombroDireito ||
+
         !cotoveloDireito ||
+
         !pulsoDireito
+
     ) {
+
         return;
+
     }
 
-    const confiancaMinima = 0.5;
+
+    const confiancaMinima =
+        0.5;
+
 
     if (
+
         (ombroEsquerdo.visibility ?? 1) <
             confiancaMinima ||
+
         (cotoveloEsquerdo.visibility ?? 1) <
             confiancaMinima ||
+
         (pulsoEsquerdo.visibility ?? 1) <
             confiancaMinima ||
+
         (ombroDireito.visibility ?? 1) <
             confiancaMinima ||
+
         (cotoveloDireito.visibility ?? 1) <
             confiancaMinima ||
+
         (pulsoDireito.visibility ?? 1) <
             confiancaMinima
+
     ) {
+
         return;
+
     }
 
+
     const anguloEsquerdo =
+
         calcularAngulo(
+
             ombroEsquerdo,
+
             cotoveloEsquerdo,
+
             pulsoEsquerdo
+
         );
 
+
     const anguloDireito =
+
         calcularAngulo(
+
             ombroDireito,
+
             cotoveloDireito,
+
             pulsoDireito
+
         );
 
 
@@ -529,63 +795,93 @@ function analisarFlexao(resultado) {
     ===================================== */
 
     anguloSuaveEsquerdo =
+
         anguloSuaveEsquerdo * 0.7 +
+
         anguloEsquerdo * 0.3;
 
+
     anguloSuaveDireito =
+
         anguloSuaveDireito * 0.7 +
+
         anguloDireito * 0.3;
 
 
     const anguloMedio =
+
         (
+
             anguloSuaveEsquerdo +
+
             anguloSuaveDireito
+
         ) / 2;
 
 
     /* =====================================
-       INÍCIO DA DETECÇÃO
+       DESCIDA
     ===================================== */
 
     if (
+
         estadoFlexao === "SUBINDO" &&
+
         anguloMedio < 125
+
     ) {
 
-        estadoFlexao = "DESCENDO";
+        estadoFlexao =
+            "DESCENDO";
+
 
         status.textContent =
             "Desceu! Agora suba.";
 
+
         return;
+
     }
 
 
     /* =====================================
-       FINAL DA FLEXÃO
+       SUBIDA
     ===================================== */
 
     if (
+
         estadoFlexao === "DESCENDO" &&
+
         anguloMedio > 145
+
     ) {
 
         const agora =
             Date.now();
 
+
         if (
+
             agora - ultimaFlexao >=
+
             tempoMinimoEntreFlexoes
+
         ) {
 
-            ultimaFlexao = agora;
+            ultimaFlexao =
+                agora;
+
 
             registrarFlexao();
 
-            estadoFlexao = "SUBINDO";
+
+            estadoFlexao =
+                "SUBINDO";
+
         }
+
     }
+
 }
 
 
@@ -597,29 +893,41 @@ function registrarFlexao() {
 
     flexoes++;
 
-    pontos += pontosPorFlexao;
+    pontos +=
+        pontosPorFlexao;
 
     vidaInimigo--;
 
+
     atualizarInterface();
 
+
     animarAtaque();
+
 
     console.log(
         "Flexão contabilizada:",
         flexoes
     );
 
+
     if (
+
         vidaInimigo <= 0
+
     ) {
 
-        vidaInimigo = 0;
+        vidaInimigo =
+            0;
+
 
         atualizarInterface();
 
+
         concluirFase();
+
     }
+
 }
 
 
@@ -632,25 +940,41 @@ function atualizarInterface() {
     counter.textContent =
         flexoes;
 
+
     score.textContent =
         pontos;
 
+
     const porcentagem =
+
         Math.max(
+
             0,
-            (vidaInimigo / vidaMaxima) * 100
+
+            (
+
+                vidaInimigo /
+
+                vidaMaxima
+
+            ) * 100
+
         );
+
 
     hpBar.style.width =
         porcentagem + "%";
 
+
     hpText.textContent =
-        `${vidaInimigo} / ${vidaMaxima}`;
+
+        `${vidaInimigo} / ${vidaMaxima} HP`;
+
 }
 
 
 /* =========================================
-   ATAQUE
+   ANIMAÇÃO DE ATAQUE
 ========================================= */
 
 function animarAtaque() {
@@ -659,7 +983,9 @@ function animarAtaque() {
         "hit"
     );
 
+
     void enemyIcon.offsetWidth;
+
 
     enemyIcon.classList.add(
         "hit"
@@ -670,11 +996,14 @@ function animarAtaque() {
         "show"
     );
 
+
     void hitEffect.offsetWidth;
+
 
     hitEffect.classList.add(
         "show"
     );
+
 
     setTimeout(() => {
 
@@ -683,6 +1012,7 @@ function animarAtaque() {
         );
 
     }, 500);
+
 }
 
 
@@ -695,42 +1025,59 @@ function prepararFase() {
     const fase =
         fases[faseAtual];
 
+
     vidaMaxima =
         fase.vida;
+
 
     vidaInimigo =
         fase.vida;
 
-    flexoes = 0;
+
+    flexoes =
+        0;
+
 
     faseNumber.textContent =
-        fase.numero;
+        `FASE ${fase.numero}`;
+
 
     enemyName.textContent =
-        fase.nome;
+        `${fase.icone} ${fase.nome}`;
+
 
     enemyIcon.textContent =
         fase.icone;
 
-    phaseNumber.textContent =
-        `FASE ${fase.numero}`;
-
-    enemyIcon.classList.remove(
-        "hit"
-    );
 
     estadoFlexao =
         "SUBINDO";
 
+
+    anguloSuaveEsquerdo =
+        180;
+
+
+    anguloSuaveDireito =
+        180;
+
+
+    ultimaFlexao =
+        0;
+
+
     atualizarInterface();
+
 
     phaseCompleteScreen.classList.remove(
         "show"
     );
 
+
     victoryScreen.classList.remove(
         "show"
     );
+
 }
 
 
@@ -741,27 +1088,39 @@ function prepararFase() {
 function concluirFase() {
 
     if (
+
         faseAtual >=
+
         fases.length - 1
+
     ) {
 
         mostrarVitoria();
 
         return;
+
     }
 
+
     phaseCompleteIcon.textContent =
+
         fases[faseAtual].icone;
 
+
     phaseCompleteText.textContent =
+
         `Você derrotou o ${fases[faseAtual].nome}!`;
 
+
     nextPhaseNumber.textContent =
+
         `FASE ${fases[faseAtual + 1].numero}`;
+
 
     phaseCompleteScreen.classList.add(
         "show"
     );
+
 }
 
 
@@ -770,7 +1129,9 @@ function concluirFase() {
 ========================================= */
 
 nextPhaseButton.addEventListener(
+
     "click",
+
     function () {
 
         faseAtual++;
@@ -778,6 +1139,7 @@ nextPhaseButton.addEventListener(
         prepararFase();
 
     }
+
 );
 
 
@@ -790,9 +1152,11 @@ function mostrarVitoria() {
     finalScore.textContent =
         pontos;
 
+
     victoryScreen.classList.add(
         "show"
     );
+
 }
 
 
@@ -802,52 +1166,68 @@ function mostrarVitoria() {
 
 function resetarJogo() {
 
-    faseAtual = 0;
+    faseAtual =
+        0;
 
-    pontos = 0;
+
+    pontos =
+        0;
+
 
     prepararFase();
 
+
     status.textContent =
-        "Posicione-se diante da câmera.";
+        "Posicione seu corpo na câmera.";
+
 }
 
 
 resetButton.addEventListener(
+
     "click",
+
     function () {
 
         resetarJogo();
 
     }
+
 );
 
 
 victoryReset.addEventListener(
+
     "click",
+
     function () {
 
         victoryScreen.classList.remove(
             "show"
         );
 
+
         resetarJogo();
 
     }
+
 );
 
 
 /* =========================================
-   BOTÃO DA CÂMERA
+   BOTÃO INICIAR CÂMERA
 ========================================= */
 
 startButton.addEventListener(
+
     "click",
+
     async function () {
 
         await iniciarCamera();
 
     }
+
 );
 
 
@@ -856,7 +1236,9 @@ startButton.addEventListener(
 ========================================= */
 
 menuStartButton.addEventListener(
+
     "click",
+
     async function () {
 
         if (!poseLandmarker) {
@@ -865,17 +1247,22 @@ menuStartButton.addEventListener(
                 "Detector ainda carregando...";
 
             return;
+
         }
+
 
         startMenu.classList.add(
             "hidden"
         );
 
+
         prepararFase();
+
 
         await iniciarCamera();
 
     }
+
 );
 
 
@@ -884,5 +1271,6 @@ menuStartButton.addEventListener(
 ========================================= */
 
 prepararFase();
+
 
 criarDetector();
