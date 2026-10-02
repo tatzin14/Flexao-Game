@@ -1777,3 +1777,10 @@ body {
     position: relative;
     z-index: 1;
 }
+/* =========================================
+   ESCONDER TELAS
+========================================= */
+
+.hidden {
+    display: none !important;
+}
