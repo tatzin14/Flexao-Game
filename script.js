@@ -130,6 +130,10 @@ const fases = [
 ];
 
 
+/* =========================================
+   ESTADO DO JOGO
+========================================= */
+
 let faseAtual = 0;
 
 let vidaInimigo = 0;
@@ -155,8 +159,7 @@ let processando = false;
 
 let ultimaDeteccao = 0;
 
-const intervaloDeteccao =
-    1000 / 20;
+const intervaloDeteccao = 1000 / 20;
 
 
 /* =========================================
@@ -181,91 +184,52 @@ const tempoMinimoEntreFlexoes = 500;
 function calcularAngulo(a, b, c) {
 
     const ab = {
-
         x: a.x - b.x,
-
         y: a.y - b.y
-
     };
-
 
     const cb = {
-
         x: c.x - b.x,
-
         y: c.y - b.y
-
     };
 
-
     const produtoEscalar =
-
         ab.x * cb.x +
-
         ab.y * cb.y;
 
-
     const tamanhoAB =
-
         Math.sqrt(
-
             ab.x * ab.x +
-
             ab.y * ab.y
-
         );
-
 
     const tamanhoCB =
-
         Math.sqrt(
-
             cb.x * cb.x +
-
             cb.y * cb.y
-
         );
 
-
     if (
-
         tamanhoAB === 0 ||
-
         tamanhoCB === 0
-
     ) {
-
         return 180;
-
     }
 
-
     let cos =
-
         produtoEscalar /
-
         (tamanhoAB * tamanhoCB);
 
-
     cos = Math.max(
-
         -1,
-
         Math.min(1, cos)
-
     );
-
 
     return (
-
         Math.acos(cos) *
-
         180 /
-
         Math.PI
-
     );
-
 }
 
 
@@ -275,29 +239,25 @@ function calcularAngulo(a, b, c) {
 
 async function criarDetector() {
 
+    if (poseLandmarker) {
+        return;
+    }
+
     const vision =
-
         await FilesetResolver.forVisionTasks(
-
             "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
-
         );
 
 
     try {
 
         poseLandmarker =
-
             await PoseLandmarker.createFromOptions(
-
                 vision,
-
                 {
-
                     baseOptions: {
 
                         modelAssetPath:
-
                             "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
 
                         delegate: "GPU"
@@ -313,9 +273,7 @@ async function criarDetector() {
                     minPosePresenceConfidence: 0.5,
 
                     minTrackingConfidence: 0.5
-
                 }
-
             );
 
 
@@ -327,17 +285,12 @@ async function criarDetector() {
 
 
         poseLandmarker =
-
             await PoseLandmarker.createFromOptions(
-
                 vision,
-
                 {
-
                     baseOptions: {
 
                         modelAssetPath:
-
                             "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
 
                         delegate: "CPU"
@@ -353,9 +306,7 @@ async function criarDetector() {
                     minPosePresenceConfidence: 0.5,
 
                     minTrackingConfidence: 0.5
-
                 }
-
             );
 
     }
@@ -376,8 +327,18 @@ async function iniciarCamera() {
 
     try {
 
-        cameraStream =
+        if (cameraStream) {
 
+            cameraStream
+                .getTracks()
+                .forEach(
+                    track => track.stop()
+                );
+
+        }
+
+
+        cameraStream =
             await navigator.mediaDevices.getUserMedia({
 
                 video: {
@@ -460,11 +421,8 @@ async function loopCamera(tempo) {
 
 
     if (
-
         !poseLandmarker ||
-
         video.readyState < 2
-
     ) {
 
         return;
@@ -473,11 +431,8 @@ async function loopCamera(tempo) {
 
 
     if (
-
         tempo - ultimaDeteccao <
-
         intervaloDeteccao
-
     ) {
 
         return;
@@ -503,13 +458,9 @@ async function loopCamera(tempo) {
     try {
 
         const resultado =
-
             poseLandmarker.detectForVideo(
-
                 video,
-
                 performance.now()
-
             );
 
 
@@ -548,24 +499,16 @@ async function loopCamera(tempo) {
 function desenharResultado(resultado) {
 
     ctx.clearRect(
-
         0,
-
         0,
-
         canvas.width,
-
         canvas.height
-
     );
 
 
     if (
-
         !resultado.landmarks ||
-
         resultado.landmarks.length === 0
-
     ) {
 
         return;
@@ -581,12 +524,9 @@ function desenharResultado(resultado) {
         PoseLandmarker.POSE_CONNECTIONS;
 
 
-    ctx.lineWidth =
-        3;
+    ctx.lineWidth = 3;
 
-
-    ctx.strokeStyle =
-        "#a855f7";
+    ctx.strokeStyle = "#a855f7";
 
 
     for (const conexao of conexoes) {
@@ -594,18 +534,11 @@ function desenharResultado(resultado) {
         const pontoA =
             landmarks[conexao.start];
 
-
         const pontoB =
             landmarks[conexao.end];
 
 
-        if (
-
-            !pontoA ||
-
-            !pontoB
-
-        ) {
+        if (!pontoA || !pontoB) {
 
             continue;
 
@@ -616,20 +549,14 @@ function desenharResultado(resultado) {
 
 
         ctx.moveTo(
-
             pontoA.x * canvas.width,
-
             pontoA.y * canvas.height
-
         );
 
 
         ctx.lineTo(
-
             pontoB.x * canvas.width,
-
             pontoB.y * canvas.height
-
         );
 
 
@@ -648,17 +575,11 @@ function desenharResultado(resultado) {
 
 
         ctx.arc(
-
             ponto.x * canvas.width,
-
             ponto.y * canvas.height,
-
             4,
-
             0,
-
             Math.PI * 2
-
         );
 
 
@@ -676,11 +597,8 @@ function desenharResultado(resultado) {
 function analisarFlexao(resultado) {
 
     if (
-
         !resultado.landmarks ||
-
         resultado.landmarks.length === 0
-
     ) {
 
         return;
@@ -713,50 +631,12 @@ function analisarFlexao(resultado) {
 
 
     if (
-
         !ombroEsquerdo ||
-
         !cotoveloEsquerdo ||
-
         !pulsoEsquerdo ||
-
         !ombroDireito ||
-
         !cotoveloDireito ||
-
         !pulsoDireito
-
-    ) {
-
-        return;
-
-    }
-
-
-    const confiancaMinima =
-        0.5;
-
-
-    if (
-
-        (ombroEsquerdo.visibility ?? 1) <
-            confiancaMinima ||
-
-        (cotoveloEsquerdo.visibility ?? 1) <
-            confiancaMinima ||
-
-        (pulsoEsquerdo.visibility ?? 1) <
-            confiancaMinima ||
-
-        (ombroDireito.visibility ?? 1) <
-            confiancaMinima ||
-
-        (cotoveloDireito.visibility ?? 1) <
-            confiancaMinima ||
-
-        (pulsoDireito.visibility ?? 1) <
-            confiancaMinima
-
     ) {
 
         return;
@@ -765,79 +645,39 @@ function analisarFlexao(resultado) {
 
 
     const anguloEsquerdo =
-
         calcularAngulo(
-
             ombroEsquerdo,
-
             cotoveloEsquerdo,
-
             pulsoEsquerdo
-
         );
 
 
     const anguloDireito =
-
         calcularAngulo(
-
             ombroDireito,
-
             cotoveloDireito,
-
             pulsoDireito
-
         );
 
 
-    /* =====================================
-       SUAVIZAÇÃO
-    ===================================== */
-
-    anguloSuaveEsquerdo =
-
-        anguloSuaveEsquerdo * 0.7 +
-
-        anguloEsquerdo * 0.3;
-
-
-    anguloSuaveDireito =
-
-        anguloSuaveDireito * 0.7 +
-
-        anguloDireito * 0.3;
-
-
     const anguloMedio =
-
         (
-
-            anguloSuaveEsquerdo +
-
-            anguloSuaveDireito
-
+            anguloEsquerdo +
+            anguloDireito
         ) / 2;
 
 
     /* =====================================
-       DESCIDA
+       DESCENDO
     ===================================== */
 
     if (
-
         estadoFlexao === "SUBINDO" &&
-
         anguloMedio < 125
-
     ) {
 
         estadoFlexao =
             "DESCENDO";
-
-
-        status.textContent =
-            "Desceu! Agora suba.";
-
 
         return;
 
@@ -845,15 +685,12 @@ function analisarFlexao(resultado) {
 
 
     /* =====================================
-       SUBIDA
+       SUBINDO
     ===================================== */
 
     if (
-
         estadoFlexao === "DESCENDO" &&
-
         anguloMedio > 145
-
     ) {
 
         const agora =
@@ -861,11 +698,8 @@ function analisarFlexao(resultado) {
 
 
         if (
-
             agora - ultimaFlexao >=
-
             tempoMinimoEntreFlexoes
-
         ) {
 
             ultimaFlexao =
@@ -912,9 +746,7 @@ function registrarFlexao() {
 
 
     if (
-
         vidaInimigo <= 0
-
     ) {
 
         vidaInimigo =
@@ -946,19 +778,12 @@ function atualizarInterface() {
 
 
     const porcentagem =
-
         Math.max(
-
             0,
-
             (
-
                 vidaInimigo /
-
                 vidaMaxima
-
             ) * 100
-
         );
 
 
@@ -967,7 +792,6 @@ function atualizarInterface() {
 
 
     hpText.textContent =
-
         `${vidaInimigo} / ${vidaMaxima} HP`;
 
 }
@@ -1038,7 +862,7 @@ function prepararFase() {
         0;
 
 
-    faseNumber.textContent =
+    phaseNumber.textContent =
         `FASE ${fase.numero}`;
 
 
@@ -1088,11 +912,8 @@ function prepararFase() {
 function concluirFase() {
 
     if (
-
         faseAtual >=
-
         fases.length - 1
-
     ) {
 
         mostrarVitoria();
@@ -1103,17 +924,14 @@ function concluirFase() {
 
 
     phaseCompleteIcon.textContent =
-
         fases[faseAtual].icone;
 
 
     phaseCompleteText.textContent =
-
         `Você derrotou o ${fases[faseAtual].nome}!`;
 
 
     nextPhaseNumber.textContent =
-
         `FASE ${fases[faseAtual + 1].numero}`;
 
 
@@ -1129,9 +947,7 @@ function concluirFase() {
 ========================================= */
 
 nextPhaseButton.addEventListener(
-
     "click",
-
     function () {
 
         faseAtual++;
@@ -1139,7 +955,6 @@ nextPhaseButton.addEventListener(
         prepararFase();
 
     }
-
 );
 
 
@@ -1184,22 +999,17 @@ function resetarJogo() {
 
 
 resetButton.addEventListener(
-
     "click",
-
     function () {
 
         resetarJogo();
 
     }
-
 );
 
 
 victoryReset.addEventListener(
-
     "click",
-
     function () {
 
         victoryScreen.classList.remove(
@@ -1210,7 +1020,6 @@ victoryReset.addEventListener(
         resetarJogo();
 
     }
-
 );
 
 
@@ -1219,15 +1028,12 @@ victoryReset.addEventListener(
 ========================================= */
 
 startButton.addEventListener(
-
     "click",
-
     async function () {
 
         await iniciarCamera();
 
     }
-
 );
 
 
@@ -1236,33 +1042,62 @@ startButton.addEventListener(
 ========================================= */
 
 menuStartButton.addEventListener(
-
     "click",
-
     async function () {
 
-        if (!poseLandmarker) {
+        menuStartButton.disabled = true;
+
+        menuStartButton.textContent =
+            "⏳ CARREGANDO...";
+
+
+        try {
+
+            /*
+             * Se o detector ainda não terminou
+             * de carregar, esperamos aqui.
+             */
+
+            if (!poseLandmarker) {
+
+                await criarDetector();
+
+            }
+
+
+            startMenu.classList.add(
+                "hidden"
+            );
+
+
+            prepararFase();
+
+
+            await iniciarCamera();
+
+
+        } catch (erro) {
+
+            console.error(
+                "Erro ao iniciar o jogo:",
+                erro
+            );
+
+
+            menuStartButton.disabled =
+                false;
+
+
+            menuStartButton.textContent =
+                "🎮 COMEÇAR FASE 1";
+
 
             status.textContent =
-                "Detector ainda carregando...";
-
-            return;
+                "Erro ao carregar o detector.";
 
         }
 
-
-        startMenu.classList.add(
-            "hidden"
-        );
-
-
-        prepararFase();
-
-
-        await iniciarCamera();
-
     }
-
 );
 
 
@@ -1271,6 +1106,5 @@ menuStartButton.addEventListener(
 ========================================= */
 
 prepararFase();
-
 
 criarDetector();
