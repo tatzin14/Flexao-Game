@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Flexão Game</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================
+         MENU INICIAL
+         ===================================== -->
+
+    <div
+        id="startMenu"
+        class="start-menu"
+    >
+
+        <div class="menu-icon">
+            ⚔️
+        </div>
+
+        <h2>
+            FLEXÃO GAME
+        </h2>
+
+        <p>
+            Derrote os inimigos fazendo flexões!
+        </p>
+
+
+        <!-- PRÉVIA DA FASE -->
+
+        <div class="phase-preview">
+
+            <div class="phase-number">
+                FASE 1
+            </div>
+
+            <div
+                id="menuEnemyIcon"
+                class="menu-enemy-icon"
+            >
+                👻
+            </div>
+
+            <h3 id="menuEnemyName">
+                FANTASMA
+            </h3>
+
+            <p id="menuEnemyGoal">
+                Derrote 10 inimigos
+            </p>
+
+        </div>
+
+
+        <!-- INFORMAÇÕES -->
+
+        <div class="menu-info">
+
+            <div>
+
+                <strong>
+                    💥
+                </strong>
+
+                <span>
+                    1 flexão = 1 dano
+                </span>
+
+            </div>
+
+
+            <div>
+
+                <strong>
+                    📊
+                </strong>
+
+                <span>
+                    100 pontos por flexão
+                </span>
+
+            </div>
+
+
+            <div>
+
+                <strong>
+                    🏆
+                </strong>
+
+                <span>
+                    Complete todas as fases
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- BOTÃO -->
+
+        <button id="menuStartButton">
+
+            🎮 COMEÇAR FASE 1
+
+        </button>
+
+    </div>
+
+
+
+    <!-- =====================================
+         JOGO
+         ===================================== -->
+
+    <main class="game">
+
+
+        <h1>
+            ⚔️ FLEXÃO GAME
+        </h1>
+
+
+        <!-- =================================
+             FASE ATUAL
+             ================================= -->
+
+        <section class="phase-display">
+
+            <span id="phaseNumber">
+                FASE 1
+            </span>
+
+            <strong id="enemyName">
+                👻 FANTASMA
+            </strong>
+
+        </section>
+
+
+
+        <!-- =================================
+             INIMIGO
+             ================================= -->
+
+        <section class="enemy">
+
+
+            <div class="enemy-icon">
+                👻
+            </div>
+
+
+            <div class="enemy-info">
+
+                <h2>
+                    FANTASMA
+                </h2>
+
+
+                <div class="hp-container">
+
+                    <div
+                        id="hpBar"
+                        class="hp-bar"
+                    ></div>
+
+                </div>
+
+
+                <span id="hpText">
+                    10 / 10 HP
+                </span>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================
+             CÂMERA
+             ================================= -->
+
+        <section class="camera-container">
+
+
+            <video
+                id="video"
+                autoplay
+                playsinline
+                muted
+            ></video>
+
+
+            <canvas
+                id="canvas"
+            ></canvas>
+
+
+            <div
+                id="loading"
+                class="loading"
+            >
+                Carregando detector...
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================
+             CONTADOR DE FLEXÕES
+             ================================= -->
+
+        <section class="counter">
+
+            <span id="counter">
+                0
+            </span>
+
+            <p>
+                FLEXÕES
+            </p>
+
+        </section>
+
+
+
+        <!-- =================================
+             PONTUAÇÃO
+             ================================= -->
+
+        <section class="score">
+
+            <span id="score">
+                0
+            </span>
+
+            <p>
+                PONTOS
+            </p>
+
+        </section>
+
+
+
+        <!-- =================================
+             STATUS
+             ================================= -->
+
+        <div
+            id="status"
+            class="status"
+        >
+            Posicione seu corpo na câmera
+        </div>
+
+
+
+        <!-- =================================
+             BOTÃO DE CÂMERA
+             ================================= -->
+
+        <button id="startButton">
+
+            📷 INICIAR CÂMERA
+
+        </button>
+
+
+
+        <!-- =================================
+             RESET
+             ================================= -->
+
+        <button id="resetButton">
+
+            🔄 RESETAR
+
+        </button>
+
+
+    </main>
+
+
+
+    <!-- =====================================
+         EFEITO DE ATAQUE
+         ===================================== -->
+
+    <div
+        id="hitEffect"
+        class="hit-effect"
+    >
+        💥
+    </div>
+
+
+
+    <!-- =====================================
+         TELA DE FASE CONCLUÍDA
+         ===================================== -->
+
+    <div
+        id="phaseCompleteScreen"
+        class="phase-complete-screen"
+    >
+
+        <div class="phase-complete-box">
+
+
+            <div
+                id="phaseCompleteIcon"
+                class="phase-complete-icon"
+            >
+                👻
+            </div>
+
+
+            <h2>
+                FASE CONCLUÍDA!
+            </h2>
+
+
+            <p id="phaseCompleteText">
+                Você derrotou o Fantasma!
+            </p>
+
+
+            <div class="phase-next">
+
+                <span>
+                    PRÓXIMA FASE
+                </span>
+
+                <strong id="nextPhaseNumber">
+                    FASE 2
+                </strong>
+
+            </div>
+
+
+            <button id="nextPhaseButton">
+
+                ⚔️ PRÓXIMA FASE
+
+            </button>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================
+         TELA DE VITÓRIA FINAL
+         ===================================== -->
+
+    <div
+        id="victoryScreen"
+        class="victory-screen"
+    >
+
+        <div class="victory-box">
+
+
+            <div class="victory-icon">
+                🏆
+            </div>
+
+
+            <h2>
+                VITÓRIA!
+            </h2>
+
+
+            <p>
+                Você derrotou todos os inimigos!
+            </p>
+
+
+            <div class="final-score">
+
+                <span id="finalScore">
+                    0
+                </span>
+
+                <small>
+                    FLEXÕES
+                </small>
+
+            </div>
+
+
+            <button id="victoryReset">
+
+                🔄 JOGAR NOVAMENTE
+
+            </button>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================
+         JAVASCRIPT
+         ===================================== -->
+
+    <script
+        type="module"
+        src="./script.js"
+    ></script>
+
+
+</body>
+
+</html>
