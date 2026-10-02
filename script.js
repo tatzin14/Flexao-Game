@@ -41,49 +41,31 @@ const enemyIcon =
     document.querySelector(".enemy-icon");
 
 const phaseCompleteScreen =
-    document.getElementById(
-        "phaseCompleteScreen"
-    );
+    document.getElementById("phaseCompleteScreen");
 
 const phaseCompleteIcon =
-    document.getElementById(
-        "phaseCompleteIcon"
-    );
+    document.getElementById("phaseCompleteIcon");
 
 const phaseCompleteText =
-    document.getElementById(
-        "phaseCompleteText"
-    );
+    document.getElementById("phaseCompleteText");
 
 const nextPhaseNumber =
-    document.getElementById(
-        "nextPhaseNumber"
-    );
+    document.getElementById("nextPhaseNumber");
 
 const nextPhaseButton =
-    document.getElementById(
-        "nextPhaseButton"
-    );
+    document.getElementById("nextPhaseButton");
 
 const hitEffect =
-    document.getElementById(
-        "hitEffect"
-    );
+    document.getElementById("hitEffect");
 
 const victoryScreen =
-    document.getElementById(
-        "victoryScreen"
-    );
+    document.getElementById("victoryScreen");
 
 const finalScore =
-    document.getElementById(
-        "finalScore"
-    );
+    document.getElementById("finalScore");
 
 const victoryReset =
-    document.getElementById(
-        "victoryReset"
-    );
+    document.getElementById("victoryReset");
 
 
 /* =========================================
@@ -131,7 +113,7 @@ const fases = [
 
 
 /* =========================================
-   ESTADO DO JOGO
+   ESTADO
 ========================================= */
 
 let faseAtual = 0;
@@ -153,6 +135,8 @@ const pontosPorFlexao = 100;
 
 let poseLandmarker = null;
 
+let detectorPromise = null;
+
 let cameraStream = null;
 
 let processando = false;
@@ -163,7 +147,7 @@ const intervaloDeteccao = 1000 / 20;
 
 
 /* =========================================
-   DETECÇÃO DE FLEXÃO
+   FLEXÃO
 ========================================= */
 
 let estadoFlexao = "SUBINDO";
@@ -240,100 +224,138 @@ function calcularAngulo(a, b, c) {
 async function criarDetector() {
 
     if (poseLandmarker) {
-        return;
+        return poseLandmarker;
     }
 
-    const vision =
-        await FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
+
+    if (detectorPromise) {
+        return detectorPromise;
+    }
+
+
+    detectorPromise = (async () => {
+
+        const vision =
+            await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
+            );
+
+
+        try {
+
+            poseLandmarker =
+                await PoseLandmarker.createFromOptions(
+                    vision,
+                    {
+
+                        baseOptions: {
+
+                            modelAssetPath:
+                                "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+
+                            delegate: "GPU"
+
+                        },
+
+                        runningMode: "VIDEO",
+
+                        numPoses: 1,
+
+                        minPoseDetectionConfidence: 0.5,
+
+                        minPosePresenceConfidence: 0.5,
+
+                        minTrackingConfidence: 0.5
+
+                    }
+                );
+
+
+        } catch (erro) {
+
+            console.warn(
+                "GPU falhou. Tentando CPU..."
+            );
+
+
+            poseLandmarker =
+                await PoseLandmarker.createFromOptions(
+                    vision,
+                    {
+
+                        baseOptions: {
+
+                            modelAssetPath:
+                                "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+
+                            delegate: "CPU"
+
+                        },
+
+                        runningMode: "VIDEO",
+
+                        numPoses: 1,
+
+                        minPoseDetectionConfidence: 0.5,
+
+                        minPosePresenceConfidence: 0.5,
+
+                        minTrackingConfidence: 0.5
+
+                    }
+                );
+
+        }
+
+
+        console.log(
+            "Detector criado com sucesso."
         );
+
+
+        return poseLandmarker;
+
+    })();
 
 
     try {
 
-        poseLandmarker =
-            await PoseLandmarker.createFromOptions(
-                vision,
-                {
-                    baseOptions: {
-
-                        modelAssetPath:
-                            "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-
-                        delegate: "GPU"
-
-                    },
-
-                    runningMode: "VIDEO",
-
-                    numPoses: 1,
-
-                    minPoseDetectionConfidence: 0.5,
-
-                    minPosePresenceConfidence: 0.5,
-
-                    minTrackingConfidence: 0.5
-                }
-            );
-
+        return await detectorPromise;
 
     } catch (erro) {
 
-        console.warn(
-            "GPU falhou. Tentando CPU..."
-        );
+        detectorPromise = null;
 
-
-        poseLandmarker =
-            await PoseLandmarker.createFromOptions(
-                vision,
-                {
-                    baseOptions: {
-
-                        modelAssetPath:
-                            "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-
-                        delegate: "CPU"
-
-                    },
-
-                    runningMode: "VIDEO",
-
-                    numPoses: 1,
-
-                    minPoseDetectionConfidence: 0.5,
-
-                    minPosePresenceConfidence: 0.5,
-
-                    minTrackingConfidence: 0.5
-                }
-            );
+        throw erro;
 
     }
-
-
-    console.log(
-        "Detector criado com sucesso."
-    );
 
 }
 
 
 /* =========================================
-   INICIAR CÂMERA
+   CÂMERA
 ========================================= */
 
 async function iniciarCamera() {
 
     try {
 
+        if (!navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia) {
+
+            throw new Error(
+                "getUserMedia não está disponível."
+            );
+
+        }
+
+
         if (cameraStream) {
 
             cameraStream
                 .getTracks()
-                .forEach(
-                    track => track.stop()
-                );
+                .forEach(track => track.stop());
 
         }
 
@@ -394,15 +416,18 @@ async function iniciarCamera() {
 
     } catch (erro) {
 
-        console.error(erro);
-
-
-        status.textContent =
-            "Não foi possível acessar a câmera.";
+        console.error(
+            "Erro ao iniciar câmera:",
+            erro
+        );
 
 
         loading.style.display =
             "block";
+
+
+        status.textContent =
+            "Não foi possível acessar a câmera.";
 
     }
 
@@ -481,7 +506,6 @@ async function loopCamera(tempo) {
             erro
         );
 
-
     } finally {
 
         processando =
@@ -493,7 +517,7 @@ async function loopCamera(tempo) {
 
 
 /* =========================================
-   DESENHAR ESQUELETO
+   ESQUELETO
 ========================================= */
 
 function desenharResultado(resultado) {
@@ -667,10 +691,6 @@ function analisarFlexao(resultado) {
         ) / 2;
 
 
-    /* =====================================
-       DESCENDO
-    ===================================== */
-
     if (
         estadoFlexao === "SUBINDO" &&
         anguloMedio < 125
@@ -683,10 +703,6 @@ function analisarFlexao(resultado) {
 
     }
 
-
-    /* =====================================
-       SUBINDO
-    ===================================== */
 
     if (
         estadoFlexao === "DESCENDO" &&
@@ -749,12 +765,9 @@ function registrarFlexao() {
         vidaInimigo <= 0
     ) {
 
-        vidaInimigo =
-            0;
-
+        vidaInimigo = 0;
 
         atualizarInterface();
-
 
         concluirFase();
 
@@ -764,7 +777,7 @@ function registrarFlexao() {
 
 
 /* =========================================
-   ATUALIZAR INTERFACE
+   INTERFACE
 ========================================= */
 
 function atualizarInterface() {
@@ -798,7 +811,7 @@ function atualizarInterface() {
 
 
 /* =========================================
-   ANIMAÇÃO DE ATAQUE
+   ATAQUE
 ========================================= */
 
 function animarAtaque() {
@@ -1024,7 +1037,7 @@ victoryReset.addEventListener(
 
 
 /* =========================================
-   BOTÃO INICIAR CÂMERA
+   BOTÃO DA CÂMERA
 ========================================= */
 
 startButton.addEventListener(
@@ -1038,31 +1051,41 @@ startButton.addEventListener(
 
 
 /* =========================================
-   BOTÃO COMEÇAR FASE
+   BOTÃO COMEÇAR
 ========================================= */
 
 menuStartButton.addEventListener(
     "click",
     async function () {
 
-        menuStartButton.disabled = true;
+        console.log(
+            "BOTÃO COMEÇAR CLICADO"
+        );
+
+
+        menuStartButton.disabled =
+            true;
+
 
         menuStartButton.textContent =
             "⏳ CARREGANDO...";
 
 
+        status.textContent =
+            "Carregando detector...";
+
+
         try {
 
-            /*
-             * Se o detector ainda não terminou
-             * de carregar, esperamos aqui.
-             */
+            await criarDetector();
 
-            if (!poseLandmarker) {
 
-                await criarDetector();
+            console.log(
+                "Detector pronto. Iniciando jogo."
+            );
 
-            }
+
+            prepararFase();
 
 
             startMenu.classList.add(
@@ -1070,16 +1093,21 @@ menuStartButton.addEventListener(
             );
 
 
-            prepararFase();
-
-
             await iniciarCamera();
+
+
+            menuStartButton.textContent =
+                "🎮 COMEÇAR FASE 1";
+
+
+            menuStartButton.disabled =
+                false;
 
 
         } catch (erro) {
 
             console.error(
-                "Erro ao iniciar o jogo:",
+                "ERRO AO COMEÇAR:",
                 erro
             );
 
@@ -1093,7 +1121,7 @@ menuStartButton.addEventListener(
 
 
             status.textContent =
-                "Erro ao carregar o detector.";
+                "Erro ao carregar o jogo.";
 
         }
 
@@ -1107,4 +1135,23 @@ menuStartButton.addEventListener(
 
 prepararFase();
 
-criarDetector();
+
+/*
+ * Começa a carregar o detector
+ * em segundo plano.
+ *
+ * O botão usa a mesma promessa,
+ * então nunca são criados dois
+ * detectores ao mesmo tempo.
+ */
+
+criarDetector().catch(
+    erro => {
+
+        console.error(
+            "Erro ao carregar detector:",
+            erro
+        );
+
+    }
+);
