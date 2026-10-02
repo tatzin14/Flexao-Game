@@ -1,18 +1,28 @@
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    >
+
     <meta name="theme-color" content="#080611">
+
     <title>Flexão Game</title>
+
     <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
 
-    <!-- =========================
+    <!-- =========================================
          MENU INICIAL
-    ========================== -->
+    ========================================== -->
+
     <div id="startMenu" class="screen active">
 
         <div class="menu-background">
@@ -23,162 +33,325 @@
 
         <div class="menu-content">
 
+            <!-- LOGO -->
+
             <div class="game-logo">
-                <div class="logo-icon">⚔</div>
+
+                <div class="logo-icon">
+                    ⚔
+                </div>
 
                 <div>
-                    <span class="logo-small">TREINO DE</span>
-                    <h1>FLEXÃO<br><span>GAME</span></h1>
+                    <span class="logo-small">
+                        TREINO DE
+                    </span>
+
+                    <h1>
+                        FLEXÃO<br>
+                        <span>GAME</span>
+                    </h1>
                 </div>
+
             </div>
+
 
             <div class="menu-subtitle">
                 DERROTE OS INIMIGOS COM SUAS FLEXÕES
             </div>
 
-            <!-- INIMIGO DA FASE -->
+
+            <!-- FASE -->
+
             <div class="phase-card">
 
                 <div class="phase-card-top">
-                    <span>FASE ATUAL</span>
-                    <strong id="menuPhaseNumber">01</strong>
+
+                    <span>
+                        FASE ATUAL
+                    </span>
+
+                    <strong id="menuPhaseNumber">
+                        01
+                    </strong>
+
                 </div>
 
+
                 <div class="menu-enemy">
-                    <div id="menuEnemyIcon" class="menu-enemy-icon">
+
+                    <div
+                        id="menuEnemyIcon"
+                        class="menu-enemy-icon"
+                    >
                         👻
                     </div>
 
+
                     <div class="menu-enemy-info">
-                        <span>INIMIGO</span>
-                        <h2 id="menuEnemyName">Fantasma</h2>
+
+                        <span>
+                            INIMIGO
+                        </span>
+
+                        <h2 id="menuEnemyName">
+                            Fantasma
+                        </h2>
+
                         <p>
                             Derrote fazendo
-                            <strong id="menuEnemyGoal">10</strong>
+                            <strong id="menuEnemyGoal">
+                                10
+                            </strong>
                             flexões
                         </p>
+
                     </div>
+
                 </div>
 
             </div>
 
+
             <!-- INFORMAÇÕES -->
+
             <div class="menu-info">
 
                 <div class="info-box">
-                    <span class="info-icon">💪</span>
+
+                    <span class="info-icon">
+                        💪
+                    </span>
+
                     <div>
-                        <small>OBJETIVO</small>
-                        <strong>FLEXÕES</strong>
+                        <small>
+                            OBJETIVO
+                        </small>
+
+                        <strong>
+                            FLEXÕES
+                        </strong>
                     </div>
+
                 </div>
 
-                <div class="info-box">
-                    <span class="info-icon">⚔</span>
-                    <div>
-                        <small>ATAQUE</small>
-                        <strong>POR REP</strong>
-                    </div>
-                </div>
 
                 <div class="info-box">
-                    <span class="info-icon">❤️</span>
+
+                    <span class="info-icon">
+                        ⚔
+                    </span>
+
                     <div>
-                        <small>VIDA</small>
-                        <strong>DO INIMIGO</strong>
+                        <small>
+                            ATAQUE
+                        </small>
+
+                        <strong>
+                            POR REP
+                        </strong>
                     </div>
+
+                </div>
+
+
+                <div class="info-box">
+
+                    <span class="info-icon">
+                        ❤️
+                    </span>
+
+                    <div>
+                        <small>
+                            VIDA
+                        </small>
+
+                        <strong>
+                            INIMIGO
+                        </strong>
+                    </div>
+
                 </div>
 
             </div>
 
-            <button id="menuStartButton" class="main-button"></button>
-                <span>COMEÇAR FASE</span>
-                <b>▶</b>
+
+            <!-- BOTÃO DO MENU -->
+
+            <button
+                id="menuStartButton"
+                class="main-button"
+                type="button"
+            >
+
+                <span>
+                    COMEÇAR FASE
+                </span>
+
+                <b>
+                    ▶
+                </b>
+
             </button>
+
 
             <div class="menu-tip">
                 POSICIONE-SE NA CÂMERA E COMECE A FAZER FLEXÕES
             </div>
 
         </div>
+
     </div>
 
 
-    <!-- =========================
-         JOGO
-    ========================== -->
-    <main id="gameScreen" class="screen game-screen">
+    <!-- =========================================
+         TELA DO JOGO
+    ========================================== -->
+
+    <main
+        id="gameScreen"
+        class="screen game-screen"
+    >
 
         <div class="game-background">
+
             <div class="game-glow"></div>
+
             <div class="game-grid"></div>
+
         </div>
 
 
-        <!-- TOPO -->
+        <!-- HEADER -->
+
         <header class="game-header">
 
             <div class="phase-display">
-                <span>FASE</span>
-                <strong id="phaseNumber">01</strong>
+
+                <span>
+                    FASE
+                </span>
+
+                <strong id="phaseNumber">
+                    01
+                </strong>
+
             </div>
+
 
             <div class="game-title">
-                <span>FLEXÃO</span>
-                <strong>GAME</strong>
+
+                <span>
+                    FLEXÃO
+                </span>
+
+                <strong>
+                    GAME
+                </strong>
+
             </div>
 
+
             <div class="score-display">
-                <span class="score-icon">★</span>
+
+                <span class="score-icon">
+                    ★
+                </span>
 
                 <div>
-                    <small>PONTOS</small>
-                    <strong id="score">0</strong>
+
+                    <small>
+                        PONTOS
+                    </small>
+
+                    <strong id="score">
+                        0
+                    </strong>
+
                 </div>
+
             </div>
 
         </header>
 
 
-        <!-- ÁREA PRINCIPAL -->
+        <!-- BATALHA -->
+
         <section class="battle-area">
 
+
             <!-- INIMIGO -->
+
             <div class="enemy-panel">
 
                 <div class="enemy-character">
 
                     <div class="enemy-aura"></div>
 
-                    <div id="enemyIcon" class="enemy-icon">
+                    <div
+                        id="enemyIcon"
+                        class="enemy-icon"
+                    >
                         👻
                     </div>
 
                 </div>
 
+
                 <div class="enemy-data">
 
                     <div class="enemy-name-row">
+
                         <div>
-                            <span>INIMIGO</span>
-                            <h2 id="enemyName">Fantasma</h2>
+
+                            <span>
+                                INIMIGO
+                            </span>
+
+                            <h2 id="enemyName">
+                                Fantasma
+                            </h2>
+
                         </div>
 
+
                         <div class="enemy-level">
-                            LV. <strong id="enemyLevel">01</strong>
+
+                            LV.
+                            <strong id="enemyLevel">
+                                01
+                            </strong>
+
                         </div>
+
                     </div>
+
+
+                    <!-- HP -->
 
                     <div class="health-wrapper">
 
                         <div class="health-label">
-                            <span>HP</span>
-                            <strong id="hpText">10 / 10</strong>
+
+                            <span>
+                                HP
+                            </span>
+
+                            <strong id="hpText">
+                                10 / 10
+                            </strong>
+
                         </div>
 
+
                         <div class="health-bar">
-                            <div id="hpBar" class="health-fill"></div>
+
+                            <div
+                                id="hpBar"
+                                class="health-fill"
+                            ></div>
+
                             <div class="health-shine"></div>
+
                         </div>
 
                     </div>
@@ -188,18 +361,27 @@
             </div>
 
 
-            <!-- CÂMERA / ARENA -->
+            <!-- CÂMERA -->
+
             <div class="camera-frame">
 
                 <div class="camera-decoration top-left"></div>
+
                 <div class="camera-decoration top-right"></div>
+
                 <div class="camera-decoration bottom-left"></div>
+
                 <div class="camera-decoration bottom-right"></div>
 
+
                 <div class="camera-label">
+
                     <span class="camera-dot"></span>
+
                     CÂMERA ATIVA
+
                 </div>
+
 
                 <div class="camera-container">
 
@@ -207,24 +389,48 @@
                         id="video"
                         autoplay
                         playsinline
-                        muted>
-                    </video>
+                        muted
+                    ></video>
+
 
                     <canvas id="canvas"></canvas>
 
-                    <div id="loading" class="loading">
+
+                    <div
+                        id="loading"
+                        class="loading"
+                    >
+
                         <div class="loading-spinner"></div>
-                        <span>INICIANDO CÂMERA...</span>
+
+                        <span>
+                            INICIANDO CÂMERA...
+                        </span>
+
                     </div>
+
 
                     <!-- CONTADOR -->
+
                     <div class="counter-display">
-                        <span class="counter-label">FLEXÕES</span>
-                        <strong id="counter">0</strong>
+
+                        <span class="counter-label">
+                            FLEXÕES
+                        </span>
+
+                        <strong id="counter">
+                            0
+                        </strong>
+
                     </div>
 
+
                     <!-- STATUS -->
-                    <div id="status" class="game-status">
+
+                    <div
+                        id="status"
+                        class="game-status"
+                    >
                         POSICIONE-SE NA CÂMERA
                     </div>
 
@@ -234,16 +440,40 @@
 
 
             <!-- CONTROLES -->
+
             <div class="game-controls">
 
-                <button id="startButton" class="game-button primary">
-                    <span>COMEÇAR</span>
-                    <b>▶</b>
+                <button
+                    id="startButton"
+                    class="game-button primary"
+                    type="button"
+                >
+
+                    <span>
+                        COMEÇAR
+                    </span>
+
+                    <b>
+                        ▶
+                    </b>
+
                 </button>
 
-                <button id="resetButton" class="game-button secondary">
-                    ↻
-                    <span>REINICIAR</span>
+
+                <button
+                    id="resetButton"
+                    class="game-button secondary"
+                    type="button"
+                >
+
+                    <span class="reset-symbol">
+                        ↻
+                    </span>
+
+                    <span>
+                        REINICIAR
+                    </span>
+
                 </button>
 
             </div>
@@ -252,42 +482,77 @@
 
 
         <!-- EFEITO DE DANO -->
-        <div id="hitEffect" class="hit-effect"></div>
+
+        <div
+            id="hitEffect"
+            class="hit-effect"
+        ></div>
 
 
-        <!-- =========================
+        <!-- =========================================
              FASE COMPLETA
-        ========================== -->
-        <div id="phaseCompleteScreen" class="overlay-screen">
+        ========================================== -->
+
+        <div
+            id="phaseCompleteScreen"
+            class="overlay-screen"
+        >
 
             <div class="result-card phase-result">
 
-                <div id="phaseCompleteIcon" class="result-icon">
+                <div
+                    id="phaseCompleteIcon"
+                    class="result-icon"
+                >
                     ⚔️
                 </div>
+
 
                 <span class="result-small">
                     INIMIGO DERROTADO
                 </span>
 
+
                 <h2 id="phaseCompleteText">
                     FASE COMPLETA!
                 </h2>
 
+
                 <div class="result-line"></div>
+
 
                 <p>
                     Prepare-se para a próxima batalha.
                 </p>
 
+
                 <div class="next-phase">
-                    <span>PRÓXIMA FASE</span>
-                    <strong id="nextPhaseNumber">02</strong>
+
+                    <span>
+                        PRÓXIMA FASE
+                    </span>
+
+                    <strong id="nextPhaseNumber">
+                        02
+                    </strong>
+
                 </div>
 
-                <button id="nextPhaseButton" class="main-button">
-                    PRÓXIMA FASE
-                    <b>▶</b>
+
+                <button
+                    id="nextPhaseButton"
+                    class="main-button"
+                    type="button"
+                >
+
+                    <span>
+                        PRÓXIMA FASE
+                    </span>
+
+                    <b>
+                        ▶
+                    </b>
+
                 </button>
 
             </div>
@@ -295,10 +560,14 @@
         </div>
 
 
-        <!-- =========================
+        <!-- =========================================
              VITÓRIA
-        ========================== -->
-        <div id="victoryScreen" class="overlay-screen">
+        ========================================== -->
+
+        <div
+            id="victoryScreen"
+            class="overlay-screen"
+        >
 
             <div class="result-card victory-result">
 
@@ -306,28 +575,54 @@
                     ★ ★ ★
                 </div>
 
+
                 <div class="result-icon victory-icon">
                     🏆
                 </div>
+
 
                 <span class="result-small">
                     TODAS AS FASES CONCLUÍDAS
                 </span>
 
-                <h2>VITÓRIA!</h2>
+
+                <h2>
+                    VITÓRIA!
+                </h2>
+
 
                 <p>
                     Você derrotou todos os inimigos!
                 </p>
 
+
                 <div class="final-score-box">
-                    <span>PONTUAÇÃO FINAL</span>
-                    <strong id="finalScore">0</strong>
+
+                    <span>
+                        PONTUAÇÃO FINAL
+                    </span>
+
+                    <strong id="finalScore">
+                        0
+                    </strong>
+
                 </div>
 
-                <button id="victoryReset" class="main-button">
-                    JOGAR NOVAMENTE
-                    <b>↻</b>
+
+                <button
+                    id="victoryReset"
+                    class="main-button"
+                    type="button"
+                >
+
+                    <span>
+                        JOGAR NOVAMENTE
+                    </span>
+
+                    <b>
+                        ↻
+                    </b>
+
                 </button>
 
             </div>
@@ -337,7 +632,41 @@
     </main>
 
 
-    <script type="module" src="./script.js"></script>
+    <!--
+        Liga o botão do menu ao botão original
+        do jogo sem alterar o script.js.
+    -->
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+
+            const menuButton =
+                document.getElementById("menuStartButton");
+
+            const gameStartButton =
+                document.getElementById("startButton");
+
+
+            if (menuButton && gameStartButton) {
+
+                menuButton.addEventListener(
+                    "click",
+                    () => {
+                        gameStartButton.click();
+                    }
+                );
+
+            }
+
+        });
+    </script>
+
+
+    <script
+        type="module"
+        src="./script.js"
+    ></script>
 
 </body>
 </html>
+```
