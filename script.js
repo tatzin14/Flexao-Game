@@ -1213,40 +1213,27 @@ startButton.addEventListener(
    ========================================= */
 
 menuStartButton.addEventListener(
+
     "click",
+
     async function () {
-
-        console.log("BOTÃO COMEÇAR FASE CLICADO");
-
-        startMenu.classList.add("hidden");
-
-        prepararFase();
-
-        status.textContent =
-            "Iniciando câmera...";
 
         if (!poseLandmarker) {
 
             status.textContent =
-                "Carregando detector...";
+                "Detector ainda carregando...";
 
-            try {
-
-                await criarDetector();
-
-            } catch (erro) {
-
-                console.error(
-                    "Erro ao criar detector:",
-                    erro
-                );
-
-                status.textContent =
-                    "Erro ao carregar detector.";
-
-                return;
-            }
+            return;
         }
+
+
+        startMenu.classList.add(
+            "hidden"
+        );
+
+
+        prepararFase();
+
 
         await iniciarCamera();
     }
@@ -1378,9 +1365,4 @@ if (victoryReset) {
 
 prepararFase();
 
-criarDetector().catch((erro) => {
-    console.error(
-        "Erro ao iniciar detector:",
-        erro
-    );
-});
+criarDetector();
