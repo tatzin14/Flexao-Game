@@ -1,442 +1,224 @@
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
-
     <meta charset="UTF-8">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#111827">
     <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        name="description"
+        content="Derrote inimigos, complete fases e acumule pontos fazendo flexões. Um jogo fitness com detecção por câmera."
     >
 
-    <title>Flexão Game</title>
+    <title>Flexão Game | Treine e derrote inimigos</title>
 
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
-
+    <link rel="stylesheet" href="./style.css">
+    <script type="module" src="./script.js"></script>
 </head>
 
-
 <body>
-
-
-    <!-- =====================================
-         MENU INICIAL
-         ===================================== -->
-
     <div
         id="startMenu"
         class="start-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="startMenuTitle"
+        aria-describedby="startMenuDescription"
     >
+        <div class="menu-icon" aria-hidden="true">⚔️</div>
 
-        <div class="menu-icon">
-            ⚔️
-        </div>
+        <h1 id="startMenuTitle">FLEXÃO GAME</h1>
 
-        <h2>
-            FLEXÃO GAME
-        </h2>
-
-        <p>
+        <p id="startMenuDescription">
             Derrote os inimigos fazendo flexões!
         </p>
 
-
-        <!-- PRÉVIA DA FASE -->
-
-        <div class="phase-preview">
-
-            <div class="phase-number">
-                FASE 1
-            </div>
+        <section class="phase-preview" aria-labelledby="menuEnemyName">
+            <span class="phase-number">FASE 1</span>
 
             <div
                 id="menuEnemyIcon"
                 class="menu-enemy-icon"
-            >
-                👻
+                aria-hidden="true"
+            >👻</div>
+
+            <h2 id="menuEnemyName">FANTASMA</h2>
+
+            <p id="menuEnemyGoal">Derrote 10 inimigos</p>
+        </section>
+
+        <section class="menu-info" aria-label="Regras do jogo">
+            <div>
+                <strong aria-hidden="true">💥</strong>
+                <span>1 flexão = 1 dano</span>
             </div>
-
-            <h3 id="menuEnemyName">
-                FANTASMA
-            </h3>
-
-            <p id="menuEnemyGoal">
-                Derrote 10 inimigos
-            </p>
-
-        </div>
-
-
-        <!-- INFORMAÇÕES -->
-
-        <div class="menu-info">
 
             <div>
-
-                <strong>
-                    💥
-                </strong>
-
-                <span>
-                    1 flexão = 1 dano
-                </span>
-
+                <strong aria-hidden="true">📊</strong>
+                <span>100 pontos por flexão</span>
             </div>
-
 
             <div>
-
-                <strong>
-                    📊
-                </strong>
-
-                <span>
-                    100 pontos por flexão
-                </span>
-
+                <strong aria-hidden="true">🏆</strong>
+                <span>Complete todas as fases</span>
             </div>
+        </section>
 
-
-            <div>
-
-                <strong>
-                    🏆
-                </strong>
-
-                <span>
-                    Complete todas as fases
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- BOTÃO -->
-
-        <button id="menuStartButton">
-
+        <button id="menuStartButton" type="button">
             🎮 COMEÇAR FASE 1
-
         </button>
-
     </div>
 
+    <main class="game" aria-label="Área do jogo">
+        <header>
+            <h1>⚔️ FLEXÃO GAME</h1>
+        </header>
 
-
-    <!-- =====================================
-         JOGO
-         ===================================== -->
-
-    <main class="game">
-
-
-        <h1>
-            ⚔️ FLEXÃO GAME
-        </h1>
-
-
-        <!-- =================================
-             FASE ATUAL
-             ================================= -->
-
-        <section class="phase-display">
-
-            <span id="phaseNumber">
-                FASE 1
-            </span>
-
-            <strong id="enemyName">
-                👻 FANTASMA
-            </strong>
-
+        <section class="phase-display" aria-label="Fase atual">
+            <span id="phaseNumber">FASE 1</span>
+            <strong id="enemyName">👻 FANTASMA</strong>
         </section>
 
-
-
-        <!-- =================================
-             INIMIGO
-             ================================= -->
-
-        <section class="enemy">
-
-
-            <div class="enemy-icon">
-                👻
-            </div>
-
+        <section class="enemy" aria-label="Estado do inimigo">
+            <div class="enemy-icon" aria-hidden="true">👻</div>
 
             <div class="enemy-info">
+                <h2 id="enemyTitle">FANTASMA</h2>
 
-                <h2>
-                    FANTASMA
-                </h2>
-
-
-                <div class="hp-container">
-
-                    <div
-                        id="hpBar"
-                        class="hp-bar"
-                    ></div>
-
+                <div
+                    class="hp-container"
+                    role="progressbar"
+                    aria-label="Vida do inimigo"
+                    aria-valuemin="0"
+                    aria-valuemax="10"
+                    aria-valuenow="10"
+                    id="hpProgress"
+                >
+                    <div id="hpBar" class="hp-bar"></div>
                 </div>
 
-
-                <span id="hpText">
-                    10 / 10 HP
-                </span>
-
+                <span id="hpText" aria-live="polite">10 / 10 HP</span>
             </div>
-
         </section>
 
-
-
-        <!-- =================================
-             CÂMERA
-             ================================= -->
-
-        <section class="camera-container">
-
-
+        <section class="camera-container" aria-label="Câmera para detectar flexões">
             <video
                 id="video"
                 autoplay
                 playsinline
                 muted
+                aria-label="Imagem da câmera para detecção dos movimentos"
             ></video>
 
-
-            <canvas
-                id="canvas"
-            ></canvas>
-
+            <canvas id="canvas" aria-hidden="true"></canvas>
 
             <div
                 id="loading"
                 class="loading"
+                role="status"
+                aria-live="polite"
             >
                 Carregando detector...
             </div>
-
-
         </section>
 
-
-
-        <!-- =================================
-             CONTADOR DE FLEXÕES
-             ================================= -->
-
-        <section class="counter">
-
-            <span id="counter">
-                0
-            </span>
-
-            <p>
-                FLEXÕES
-            </p>
-
+        <section class="counter" aria-label="Contador de flexões">
+            <span id="counter" aria-live="polite">0</span>
+            <p>FLEXÕES</p>
         </section>
 
-
-
-        <!-- =================================
-             PONTUAÇÃO
-             ================================= -->
-
-        <section class="score">
-
-            <span id="score">
-                0
-            </span>
-
-            <p>
-                PONTOS
-            </p>
-
+        <section class="score" aria-label="Pontuação atual">
+            <span id="score" aria-live="polite">0</span>
+            <p>PONTOS</p>
         </section>
 
-
-
-        <!-- =================================
-             STATUS
-             ================================= -->
-
-        <div
+        <p
             id="status"
             class="status"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
         >
             Posicione seu corpo na câmera
+        </p>
+
+        <div class="game-controls" aria-label="Controles do jogo">
+            <button id="startButton" type="button">
+                📷 INICIAR CÂMERA
+            </button>
+
+            <button id="resetButton" type="button">
+                🔄 RESETAR
+            </button>
         </div>
-
-
-
-        <!-- =================================
-             BOTÃO DE CÂMERA
-             ================================= -->
-
-        <button id="startButton">
-
-            📷 INICIAR CÂMERA
-
-        </button>
-
-
-
-        <!-- =================================
-             RESET
-             ================================= -->
-
-        <button id="resetButton">
-
-            🔄 RESETAR
-
-        </button>
-
-
     </main>
-
-
-
-    <!-- =====================================
-         EFEITO DE ATAQUE
-         ===================================== -->
 
     <div
         id="hitEffect"
         class="hit-effect"
-    >
-        💥
-    </div>
+        aria-hidden="true"
+    >💥</div>
 
-
-
-    <!-- =====================================
-         TELA DE FASE CONCLUÍDA
-         ===================================== -->
-
-    <div
+    <section
         id="phaseCompleteScreen"
         class="phase-complete-screen"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="phaseCompleteTitle"
+        aria-describedby="phaseCompleteText"
+        aria-hidden="true"
     >
-
         <div class="phase-complete-box">
-
-
             <div
                 id="phaseCompleteIcon"
                 class="phase-complete-icon"
-            >
-                👻
-            </div>
+                aria-hidden="true"
+            >👻</div>
 
-
-            <h2>
-                FASE CONCLUÍDA!
-            </h2>
-
+            <h2 id="phaseCompleteTitle">FASE CONCLUÍDA!</h2>
 
             <p id="phaseCompleteText">
                 Você derrotou o Fantasma!
             </p>
 
-
             <div class="phase-next">
-
-                <span>
-                    PRÓXIMA FASE
-                </span>
-
-                <strong id="nextPhaseNumber">
-                    FASE 2
-                </strong>
-
+                <span>PRÓXIMA FASE</span>
+                <strong id="nextPhaseNumber">FASE 2</strong>
             </div>
 
-
-            <button id="nextPhaseButton">
-
+            <button id="nextPhaseButton" type="button">
                 ⚔️ PRÓXIMA FASE
-
             </button>
-
-
         </div>
+    </section>
 
-    </div>
-
-
-
-    <!-- =====================================
-         TELA DE VITÓRIA FINAL
-         ===================================== -->
-
-    <div
+    <section
         id="victoryScreen"
         class="victory-screen"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="victoryTitle"
+        aria-hidden="true"
     >
-
         <div class="victory-box">
+            <div class="victory-icon" aria-hidden="true">🏆</div>
 
+            <h2 id="victoryTitle">VITÓRIA!</h2>
 
-            <div class="victory-icon">
-                🏆
+            <p>Você derrotou todos os inimigos!</p>
+
+            <div class="final-score" aria-label="Total de flexões">
+                <span id="finalScore">0</span>
+                <small>FLEXÕES</small>
             </div>
 
-
-            <h2>
-                VITÓRIA!
-            </h2>
-
-
-            <p>
-                Você derrotou todos os inimigos!
-            </p>
-
-
-            <div class="final-score">
-
-                <span id="finalScore">
-                    0
-                </span>
-
-                <small>
-                    FLEXÕES
-                </small>
-
-            </div>
-
-
-            <button id="victoryReset">
-
+            <button id="victoryReset" type="button">
                 🔄 JOGAR NOVAMENTE
-
             </button>
-
-
         </div>
-
-    </div>
-
-
-
-    <!-- =====================================
-         JAVASCRIPT
-         ===================================== -->
-
-    <script
-        type="module"
-        src="./script.js"
-    ></script>
-
-
+    </section>
 </body>
 
 </html>
+```

@@ -1,1281 +1,860 @@
-const {
-    PoseLandmarker,
-    FilesetResolver
-} = await import(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1"
-);
 
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 
-/* =========================================
-   ELEMENTOS
-   ========================================= */
+const $ = (selector) => document.querySelector(selector);
+const byId = (id) => document.getElementById(id);
 
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
+const video = byId("video");
+const canvas = byId("canvas");
 const ctx = canvas.getContext("2d");
+const loading = byId("loading");
+const status = byId("status");
+const startButton = byId("startButton");
+const resetButton = byId("resetButton");
+const counter = byId("counter");
+const hpBar = byId("hpBar");
+const hpText = byId("hpText");
+const scoreElement = byId("score");
+const startMenu = byId("startMenu");
+const menuStartButton = byId("menuStartButton");
+const phaseNumberElement = byId("phaseNumber");
+const enemyNameElement = byId("enemyName");
+const phaseCompleteScreen = byId("phaseCompleteScreen");
+const phaseCompleteIcon = byId("phaseCompleteIcon");
+const phaseCompleteText = byId("phaseCompleteText");
+const nextPhaseNumber = byId("nextPhaseNumber");
+const nextPhaseButton = byId("nextPhaseButton");
+const enemyIcon = $(".enemy-icon");
+const hitEffect = byId("hitEffect");
+const victoryScreen = byId("victoryScreen");
+const finalScore = byId("finalScore");
+const victoryReset = byId("victoryReset");
+const enemyTitle = $(".enemy-info h2");
+const hpProgress = byId("hpProgress");
 
-const loading = document.getElementById("loading");
-const status = document.getElementById("status");
-
-const startButton = document.getElementById("startButton");
-const resetButton = document.getElementById("resetButton");
-
-const counter = document.getElementById("counter");
-const hpBar = document.getElementById("hpBar");
-const hpText = document.getElementById("hpText");
-
-const scoreElement = document.getElementById("score");
-
-const startMenu =
-    document.getElementById("startMenu");
-
-const menuStartButton =
-    document.getElementById("menuStartButton");
-
-const phaseNumberElement =
-    document.getElementById("phaseNumber");
-
-const enemyNameElement =
-    document.getElementById("enemyName");
-
-const phaseCompleteScreen =
-    document.getElementById("phaseCompleteScreen");
-
-const phaseCompleteIcon =
-    document.getElementById("phaseCompleteIcon");
-
-const phaseCompleteText =
-    document.getElementById("phaseCompleteText");
-
-const nextPhaseNumber =
-    document.getElementById("nextPhaseNumber");
-
-const nextPhaseButton =
-    document.getElementById("nextPhaseButton");
-
-const enemyIcon =
-    document.querySelector(".enemy-icon");
-
-const hitEffect =
-    document.getElementById("hitEffect");
-
-const victoryScreen =
-    document.getElementById("victoryScreen");
-
-const finalScore =
-    document.getElementById("finalScore");
-
-const victoryReset =
-    document.getElementById("victoryReset");
-
-
-/* =========================================
-   FASES
-   ========================================= */
-
-const fases = [
-
-    {
-        numero: 1,
-        nome: "FANTASMA",
-        icone: "👻",
-        vida: 10
-    },
-
-    {
-        numero: 2,
-        nome: "ESQUELETO",
-        icone: "💀",
-        vida: 15
-    },
-
-    {
-        numero: 3,
-        nome: "GOBLIN",
-        icone: "👹",
-        vida: 20
-    },
-
-    {
-        numero: 4,
-        nome: "ZUMBI",
-        icone: "🧟",
-        vida: 25
-    },
-
-    {
-        numero: 5,
-        nome: "BOSS",
-        icone: "👿",
-        vida: 30
-    }
-
+const phases = [
+    { number: 1, name: "FANTASMA", icon: "👻", hp: 10 },
+    { number: 2, name: "ESQUELETO", icon: "💀", hp: 15 },
+    { number: 3, name: "GOBLIN", icon: "👹", hp: 20 },
+    { number: 4, name: "ZUMBI", icon: "🧟", hp: 25 },
+    { number: 5, name: "BOSS", icon: "👿", hp: 30 }
 ];
 
-let faseAtual = 0;
+const CONFIG = {
+    detectionFps: 20,
+    minVisibility: 0.55,
+    topAngle: 155,
+    bottomAngle: 95,
+    minRepDuration: 450,
+    maxRepDuration: 6000,
+    cooldown: 900,
+    requiredStableFrames: 3,
+    maxBodyTiltDegrees: 25,
+    maxFloorDifference: 0.12,
+    minBodyLength: 0.12
+};
 
-let flexoes = 0;
-
-let pontuacao = 0;
-
-const pontosPorFlexao = 100;
-
-let hp = fases[0].vida;
-
-let maxHP = fases[0].vida;
-
-let faseIniciada = false;
-
-let aguardandoPosicao = true;
-
-
-/* =========================================
-   DETECTOR
-   ========================================= */
-
-let poseLandmarker = null;
-
+let detector = null;
+let stream = null;
 let cameraStarted = false;
+let animationFrame = 0;
+let lastDetectionTime = 0;
+let lastVideoTime = -1;
+let isDetecting = false;
 
-let estado = "cima";
+let currentPhaseIndex = 0;
+let pushUps = 0;
+let score = 0;
+let hp = phases[0].hp;
+let maxHp = phases[0].hp;
+let phaseActive = false;
+let waitingForPosition = true;
 
-let ultimaDeteccao = 0;
+let repState = "top";
+let smoothedAngle = null;
+let lastRepAt = 0;
+let downAt = 0;
+let stableFrames = 0;
+let currentPoseValid = false;
+let lastStatus = "";
+let lastValidPoseAt = 0;
 
-const intervaloDeteccao = 1000 / 20;
+const connections = [
+    [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+    [11, 23], [12, 24], [23, 24], [23, 25], [25, 27],
+    [24, 26], [26, 28]
+];
 
+function setStatus(message) {
+    if (message !== lastStatus) {
+        status.textContent = message;
+        lastStatus = message;
+    }
+}
 
-/*
-   Suavização original
-*/
+function setLoading(message, visible = true) {
+    loading.textContent = message;
+    loading.style.display = visible ? "block" : "none";
+}
 
-let anguloSuavizado = null;
-
-const suavizacao = 0.55;
-
-let ultimaFlexao = 0;
-
-const tempoMinimoEntreFlexoes = 500;
-
-
-/*
-   Controle extra da flexão
-*/
-
-let posturaFlexaoValida = false;
-
-let yCorpoInicial = null;
-
-let yCorpoBaixo = null;
-
-
-/* =========================================
-   CRIAR DETECTOR
-   ========================================= */
-
-async function criarDetector() {
+async function createDetector() {
+    setLoading("Carregando detector de pose...");
 
     try {
-
-        loading.textContent =
-            "Carregando MediaPipe...";
-
-        const vision =
-            await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
-            );
-
-        poseLandmarker =
-            await PoseLandmarker.createFromOptions(
-                vision,
-                {
-                    baseOptions: {
-
-                        modelAssetPath:
-                            "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-
-                        delegate: "GPU"
-                    },
-
-                    runningMode: "VIDEO",
-
-                    numPoses: 1
-                }
-            );
-
-        loading.textContent =
-            "Detector pronto!";
-
-        console.log(
-            "MediaPipe carregado!"
+        const vision = await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
         );
 
-    } catch (erro) {
-
-        console.error(erro);
-
-        loading.textContent =
-            "Erro ao carregar MediaPipe.";
-
-        status.textContent =
-            "Erro no detector. Tentando CPU...";
+        const modelUrl =
+            "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
 
         try {
-
-            const vision =
-                await FilesetResolver.forVisionTasks(
-                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
-                );
-
-            poseLandmarker =
-                await PoseLandmarker.createFromOptions(
-                    vision,
-                    {
-                        baseOptions: {
-
-                            modelAssetPath:
-                                "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
-                        },
-
-                        runningMode: "VIDEO",
-
-                        numPoses: 1
-                    }
-                );
-
-            loading.textContent =
-                "Detector pronto!";
-
-        } catch (erro2) {
-
-            console.error(erro2);
-
-            loading.textContent =
-                "Não foi possível carregar o detector.";
-        }
-    }
-}
-
-
-/* =========================================
-   CÂMERA
-   ========================================= */
-
-async function iniciarCamera() {
-
-    try {
-
-        const stream =
-            await navigator.mediaDevices.getUserMedia({
-
-                video: {
-
-                    facingMode: "user",
-
-                    width: {
-                        ideal: 480
-                    },
-
-                    height: {
-                        ideal: 360
-                    },
-
-                    frameRate: {
-                        ideal: 30,
-                        max: 30
-                    }
+            detector = await PoseLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: modelUrl,
+                    delegate: "GPU"
                 },
-
-                audio: false
+                runningMode: "VIDEO",
+                numPoses: 1,
+                minPoseDetectionConfidence: 0.6,
+                minPosePresenceConfidence: 0.6,
+                minTrackingConfidence: 0.6
             });
-
-        video.srcObject = stream;
-
-        cameraStarted = true;
-
-        startButton.style.display =
-            "none";
-
-        status.textContent =
-            "Câmera ligada! Posicione o corpo.";
-
-        loading.style.display =
-            "none";
-
-        await video.play();
-
-        if (video.readyState >= 1) {
-
-            ajustarCanvas();
+        } catch {
+            detector = await PoseLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: modelUrl
+                },
+                runningMode: "VIDEO",
+                numPoses: 1,
+                minPoseDetectionConfidence: 0.6,
+                minPosePresenceConfidence: 0.6,
+                minTrackingConfidence: 0.6
+            });
         }
 
-        detectarPose();
+        setLoading("Detector pronto!", false);
+        startButton.disabled = false;
+        menuStartButton.disabled = false;
 
-    } catch (erro) {
+        setStatus(
+            "Detector pronto. Inicie a câmera e posicione-se de lado."
+        );
+    } catch (error) {
+        console.error("Falha ao carregar o detector:", error);
 
-        console.error(erro);
-
-        status.textContent =
-            "Não foi possível acessar a câmera.";
-    }
-}
-
-
-/* =========================================
-   CANVAS
-   ========================================= */
-
-function ajustarCanvas() {
-
-    if (
-        video.videoWidth === 0 ||
-        video.videoHeight === 0
-    ) {
-        return;
-    }
-
-    canvas.width =
-        video.videoWidth;
-
-    canvas.height =
-        video.videoHeight;
-}
-
-
-/* =========================================
-   DETECTAR POSE
-   ========================================= */
-
-async function detectarPose() {
-
-    requestAnimationFrame(
-        detectarPose
-    );
-
-    if (
-        !poseLandmarker ||
-        !cameraStarted ||
-        video.readyState < 2
-    ) {
-        return;
-    }
-
-    const agora =
-        performance.now();
-
-    if (
-        agora - ultimaDeteccao <
-        intervaloDeteccao
-    ) {
-        return;
-    }
-
-    ultimaDeteccao = agora;
-
-    if (
-        canvas.width !==
-            video.videoWidth ||
-
-        canvas.height !==
-            video.videoHeight
-    ) {
-
-        ajustarCanvas();
-    }
-
-    let resultado;
-
-    try {
-
-        resultado =
-            poseLandmarker.detectForVideo(
-                video,
-                agora
-            );
-
-    } catch (erro) {
-
-        console.error(
-            "Erro na detecção:",
-            erro
+        setLoading("Não foi possível carregar o detector.");
+        setStatus(
+            "Erro ao carregar o detector. Atualize a página e tente novamente."
         );
 
-        return;
-    }
-
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    if (
-        resultado.landmarks &&
-        resultado.landmarks.length > 0
-    ) {
-
-        const pontos =
-            resultado.landmarks[0];
-
-        desenharCorpo(pontos);
-
-        detectarFlexao(pontos);
+        startButton.disabled = true;
+        menuStartButton.disabled = true;
     }
 }
 
+async function startCamera() {
+    if (cameraStarted) return;
 
-/* =========================================
-   ESQUELETO
-   ========================================= */
+    if (!navigator.mediaDevices?.getUserMedia) {
+        setStatus(
+            "A câmera exige HTTPS ou localhost e permissão do navegador."
+        );
+        return;
+    }
 
-function desenharCorpo(pontos) {
+    try {
+        startButton.disabled = true;
+        menuStartButton.disabled = true;
 
-    const conexoes = [
+        setStatus("Solicitando acesso à câmera...");
 
-        [11, 12],
+        stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+                facingMode: "user",
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                frameRate: { ideal: 30, max: 30 }
+            }
+        });
 
-        [11, 13],
-        [13, 15],
+        video.srcObject = stream;
+        await video.play();
 
-        [12, 14],
-        [14, 16],
+        cameraStarted = true;
+        startButton.style.display = "none";
 
-        [11, 23],
-        [12, 24],
+        setLoading("", false);
+        resizeCanvas();
+        resetRepDetection();
+        startDetectionLoop();
 
-        [23, 24],
+        setStatus(
+            "Câmera ligada. Fique de lado, com o corpo inteiro visível."
+        );
+    } catch (error) {
+        console.error("Falha ao iniciar a câmera:", error);
 
-        [23, 25],
-        [25, 27],
+        stopCamera();
 
-        [24, 26],
-        [26, 28]
+        setStatus(
+            error?.name === "NotAllowedError"
+                ? "Permita o acesso à câmera nas configurações do navegador."
+                : "Não foi possível iniciar a câmera. Verifique se ela está em uso."
+        );
 
-    ];
+        startButton.disabled = false;
+        menuStartButton.disabled = false;
+        startButton.style.display = "";
+    }
+}
 
-    ctx.strokeStyle =
-        "#a855f7";
+function stopCamera() {
+    cameraStarted = false;
 
-    ctx.lineWidth = 3;
+    if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+    }
 
-    ctx.lineCap =
-        "round";
+    if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        stream = null;
+    }
 
-    for (
-        const [a, b]
-        of conexoes
+    if (video) {
+        video.srcObject = null;
+    }
+}
+
+function resizeCanvas() {
+    if (!video.videoWidth || !video.videoHeight) return;
+
+    if (
+        canvas.width !== video.videoWidth ||
+        canvas.height !== video.videoHeight
     ) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+    }
+}
 
-        const A = pontos[a];
-        const B = pontos[b];
+function startDetectionLoop() {
+    if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+    }
 
-        if (!A || !B) {
-            continue;
-        }
+    const loop = (now) => {
+        animationFrame = requestAnimationFrame(loop);
 
         if (
-            A.visibility < 0.35 ||
-            B.visibility < 0.35
+            !cameraStarted ||
+            !detector ||
+            video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+            video.currentTime === lastVideoTime ||
+            now - lastDetectionTime < 1000 / CONFIG.detectionFps ||
+            isDetecting
         ) {
+            return;
+        }
+
+        lastDetectionTime = now;
+        lastVideoTime = video.currentTime;
+        isDetecting = true;
+
+        try {
+            resizeCanvas();
+
+            const result = detector.detectForVideo(video, now);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const landmarks = result.landmarks?.[0];
+
+            if (!landmarks) {
+                handleLostPose();
+                return;
+            }
+
+            drawPose(landmarks);
+            processPose(landmarks, now);
+        } catch (error) {
+            console.error("Erro ao detectar pose:", error);
+
+            setStatus(
+                "Falha temporária na detecção. Mantenha o corpo visível."
+            );
+        } finally {
+            isDetecting = false;
+        }
+    };
+
+    animationFrame = requestAnimationFrame(loop);
+}
+
+function drawPose(landmarks) {
+    ctx.save();
+
+    ctx.strokeStyle = "#a855f7";
+    ctx.lineWidth = Math.max(2, canvas.width / 240);
+    ctx.lineCap = "round";
+
+    for (const [aIndex, bIndex] of connections) {
+        const a = landmarks[aIndex];
+        const b = landmarks[bIndex];
+
+        if (!isVisible(a, 0.35) || !isVisible(b, 0.35)) {
             continue;
         }
 
         ctx.beginPath();
-
-        ctx.moveTo(
-            A.x * canvas.width,
-            A.y * canvas.height
-        );
-
-        ctx.lineTo(
-            B.x * canvas.width,
-            B.y * canvas.height
-        );
-
+        ctx.moveTo(a.x * canvas.width, a.y * canvas.height);
+        ctx.lineTo(b.x * canvas.width, b.y * canvas.height);
         ctx.stroke();
     }
 
-    ctx.fillStyle =
-        "#ffd21c";
+    ctx.fillStyle = "#ffd21c";
 
-    for (
-        const ponto
-        of pontos
-    ) {
-
-        if (
-            !ponto ||
-            ponto.visibility < 0.35
-        ) {
-            continue;
-        }
+    for (const point of landmarks) {
+        if (!isVisible(point, 0.35)) continue;
 
         ctx.beginPath();
 
         ctx.arc(
-
-            ponto.x *
-                canvas.width,
-
-            ponto.y *
-                canvas.height,
-
-            4,
-
+            point.x * canvas.width,
+            point.y * canvas.height,
+            Math.max(3, canvas.width / 160),
             0,
-
             Math.PI * 2
         );
 
         ctx.fill();
     }
+
+    ctx.restore();
 }
 
+function isVisible(point, threshold = CONFIG.minVisibility) {
+    return Boolean(
+        point &&
+        Number.isFinite(point.x) &&
+        Number.isFinite(point.y) &&
+        (point.visibility ?? 1) >= threshold
+    );
+}
 
-/* =========================================
-   DETECÇÃO DA FLEXÃO
-   ========================================= */
+function angleAt(a, b, c) {
+    const baX = a.x - b.x;
+    const baY = a.y - b.y;
+    const bcX = c.x - b.x;
+    const bcY = c.y - b.y;
 
-function detectarFlexao(pontos) {
+    const denominator =
+        Math.hypot(baX, baY) * Math.hypot(bcX, bcY);
 
-    const ombroEsquerdo = pontos[11];
-    const ombroDireito = pontos[12];
+    if (denominator < 1e-6) return null;
 
-    const cotoveloEsquerdo = pontos[13];
-    const cotoveloDireito = pontos[14];
+    const cosine = Math.max(
+        -1,
+        Math.min(
+            1,
+            (baX * bcX + baY * bcY) / denominator
+        )
+    );
 
-    const maoEsquerda = pontos[15];
-    const maoDireita = pontos[16];
+    return Math.acos(cosine) * 180 / Math.PI;
+}
 
-    const quadrilEsquerdo = pontos[23];
-    const quadrilDireito = pontos[24];
+function bodyTiltDegrees(shoulder, ankle) {
+    const dx = ankle.x - shoulder.x;
+    const dy = ankle.y - shoulder.y;
 
-    const joelhoEsquerdo = pontos[25];
-    const joelhoDireito = pontos[26];
+    if (Math.hypot(dx, dy) < 1e-6) {
+        return 90;
+    }
 
+    return Math.abs(
+        Math.atan2(dy, dx) * 180 / Math.PI
+    );
+}
 
-    // Todos os pontos importantes precisam estar visíveis
-
-    const pontosImportantes = [
-        ombroEsquerdo,
-        ombroDireito,
-        cotoveloEsquerdo,
-        cotoveloDireito,
-        maoEsquerda,
-        maoDireita,
-        quadrilEsquerdo,
-        quadrilDireito,
-        joelhoEsquerdo,
-        joelhoDireito
+function chooseVisibleSide(landmarks) {
+    const sides = [
+        {
+            shoulder: 11,
+            elbow: 13,
+            wrist: 15,
+            hip: 23,
+            ankle: 27
+        },
+        {
+            shoulder: 12,
+            elbow: 14,
+            wrist: 16,
+            hip: 24,
+            ankle: 28
+        }
     ];
 
-    const corpoVisivel =
-        pontosImportantes.every(
-            ponto =>
-                ponto &&
-                ponto.visibility > 0.55
-        );
-
-    if (!corpoVisivel) {
-
-        posturaFlexaoValida = false;
-
-        return;
-    }
-
-
-    // ==========================================
-    // ÂNGULOS DOS BRAÇOS
-    // ==========================================
-
-    const esquerdo = obterAnguloBraco(
-        ombroEsquerdo,
-        cotoveloEsquerdo,
-        maoEsquerda
-    );
-
-    const direito = obterAnguloBraco(
-        ombroDireito,
-        cotoveloDireito,
-        maoDireita
-    );
-
-    if (
-        esquerdo === null ||
-        direito === null
-    ) {
-
-        return;
-    }
-
-    const angulo =
-        (esquerdo + direito) / 2;
-
-
-    // ==========================================
-    // POSIÇÃO DO CORPO
-    // ==========================================
-
-    const ombroY =
-        (ombroEsquerdo.y + ombroDireito.y) / 2;
-
-    const quadrilY =
-        (quadrilEsquerdo.y + quadrilDireito.y) / 2;
-
-    const joelhoY =
-        (joelhoEsquerdo.y + joelhoDireito.y) / 2;
-
-    const maoY =
-        (maoEsquerda.y + maoDireita.y) / 2;
-
-
-    // As mãos precisam estar abaixo/próximas dos ombros.
-
-    const maosNaBase =
-        maoY > ombroY - 0.08 &&
-        maoY < quadrilY + 0.20;
-
-
-    // ==========================================
-    // CORPO RELATIVAMENTE ALINHADO
-    // ==========================================
-
-    const diferencaOmbroQuadril =
-        Math.abs(
-            ombroY - quadrilY
-        );
-
-    const diferencaQuadrilJoelho =
-        Math.abs(
-            quadrilY - joelhoY
-        );
-
-
-    // Evita considerar uma pessoa simplesmente em pé.
-
-    const corpoAcompanhando =
-        diferencaOmbroQuadril < 0.38 &&
-        diferencaQuadrilJoelho < 0.45;
-
-
-    // ==========================================
-    // POSIÇÃO INICIAL
-    // ==========================================
-
-    if (aguardandoPosicao) {
-
-        const bracosEstendidos =
-            esquerdo > 150 &&
-            direito > 150;
-
-        if (
-            bracosEstendidos &&
-            maosNaBase &&
-            corpoAcompanhando
-        ) {
-
-            aguardandoPosicao = false;
-
-            faseIniciada = true;
-
-            estado = "cima";
-
-            anguloSuavizado =
-                angulo;
-
-            yCorpoInicial =
-                (ombroY + quadrilY) / 2;
-
-            yCorpoBaixo = null;
-
-            posturaFlexaoValida = true;
-
-            status.textContent =
-                "✅ POSIÇÃO CORRETA! VALENDO!";
-        }
-
-        return;
-    }
-
-
-    // ==========================================
-    // SUAVIZAÇÃO DO ÂNGULO
-    // ==========================================
-
-    if (anguloSuavizado === null) {
-
-        anguloSuavizado =
-            angulo;
-
-    } else {
-
-        anguloSuavizado =
-            (anguloSuavizado * (1 - suavizacao)) +
-            (angulo * suavizacao);
-    }
-
-
-    // ==========================================
-    // DESCIDA
-    // ==========================================
-
-    if (
-        anguloSuavizado < 110 &&
-        estado === "cima" &&
-        maosNaBase &&
-        corpoAcompanhando
-    ) {
-
-        estado = "baixo";
-
-        yCorpoBaixo =
-            (ombroY + quadrilY) / 2;
-
-        posturaFlexaoValida = true;
-
-        status.textContent =
-            "⬇️ Desceu!";
-    }
-
-
-    // ==========================================
-    // SUBIDA + CONFIRMAÇÃO DA FLEXÃO
-    // ==========================================
-
-    if (
-        anguloSuavizado > 150 &&
-        estado === "baixo"
-    ) {
-
-        const corpoSubiu =
-            yCorpoBaixo !== null &&
-            Math.abs(
-                (
-                    (ombroY + quadrilY) / 2
-                ) -
-                yCorpoBaixo
-            ) > 0.015;
-
-        const posturaFinalValida =
-            maosNaBase &&
-            corpoAcompanhando &&
-            posturaFlexaoValida &&
-            corpoSubiu;
-
-        const agora =
-            performance.now();
-
-        if (
-            posturaFinalValida &&
-            agora - ultimaFlexao >
-                tempoMinimoEntreFlexoes
-        ) {
-
-            estado = "cima";
-
-            ultimaFlexao =
-                agora;
-
-            posturaFlexaoValida =
-                false;
-
-            yCorpoBaixo =
-                null;
-
-            registrarFlexao();
-        }
-    }
-}
-
-
-/* =========================================
-   ÂNGULO DO BRAÇO
-   ========================================= */
-
-function obterAnguloBraco(
-    ombro,
-    cotovelo,
-    mao
-) {
-
-    if (
-        !ombro ||
-        !cotovelo ||
-        !mao
-    ) {
-
-        return null;
-    }
-
-    if (
-        ombro.visibility < 0.35 ||
-        cotovelo.visibility < 0.35 ||
-        mao.visibility < 0.35
-    ) {
-
-        return null;
-    }
-
-    return calcularAngulo(
-        ombro,
-        cotovelo,
-        mao
-    );
-}
-
-
-function calcularAngulo(
-    a,
-    b,
-    c
-) {
-
-    const BA = {
-        x: a.x - b.x,
-        y: a.y - b.y
-    };
-
-    const BC = {
-        x: c.x - b.x,
-        y: c.y - b.y
-    };
-
-    const produto =
-        BA.x * BC.x +
-        BA.y * BC.y;
-
-    const tamanhoBA =
-        Math.sqrt(
-            BA.x ** 2 +
-            BA.y ** 2
-        );
-
-    const tamanhoBC =
-        Math.sqrt(
-            BC.x ** 2 +
-            BC.y ** 2
-        );
-
-    if (
-        tamanhoBA === 0 ||
-        tamanhoBC === 0
-    ) {
-
-        return null;
-    }
-
-    const cos =
-        produto /
-        (
-            tamanhoBA *
-            tamanhoBC
-        );
-
-    const limitado =
-        Math.max(
-            -1,
-            Math.min(
-                1,
-                cos
+    const candidates = sides.map((side) => {
+        const points = Object.fromEntries(
+            Object.entries(side).map(
+                ([key, index]) => [key, landmarks[index]]
             )
         );
 
-    return Math.acos(
-        limitado
-    ) * (
-        180 / Math.PI
-    );
+        const keys = [
+            "shoulder",
+            "elbow",
+            "wrist",
+            "hip",
+            "ankle"
+        ];
+
+        const visible = keys.every(
+            (key) => isVisible(points[key], 0.45)
+        );
+
+        const confidence = keys.reduce(
+            (sum, key) =>
+                sum + (points[key]?.visibility ?? 0),
+            0
+        );
+
+        return {
+            ...points,
+            visible,
+            confidence
+        };
+    });
+
+    return candidates
+        .filter((candidate) => candidate.visible)
+        .sort((a, b) => b.confidence - a.confidence)[0] ?? null;
 }
 
+function analyzePushUpPose(landmarks) {
+    const side = chooseVisibleSide(landmarks);
 
-/* =========================================
-   REGISTRAR FLEXÃO
-   ========================================= */
+    if (!side) {
+        return {
+            valid: false,
+            reason: "Mostre ombro, cotovelo, mão, quadril e tornozelo."
+        };
+    }
 
-function registrarFlexao() {
+    const { shoulder, elbow, wrist, hip, ankle } = side;
 
-    if (
-        !faseIniciada ||
-        aguardandoPosicao
-    ) {
+    const armAngle = angleAt(shoulder, elbow, wrist);
+
+    if (armAngle === null) {
+        return {
+            valid: false,
+            reason: "Não consegui medir o ângulo do braço."
+        };
+    }
+
+    const bodyLength = Math.hypot(
+        ankle.x - shoulder.x,
+        ankle.y - shoulder.y
+    );
+
+    if (bodyLength < CONFIG.minBodyLength) {
+        return {
+            valid: false,
+            reason: "Afaste um pouco a câmera e mostre o corpo inteiro."
+        };
+    }
+
+    const bodyTilt = bodyTiltDegrees(shoulder, ankle);
+
+    const shoulderHipDistance = Math.hypot(
+        hip.x - shoulder.x,
+        hip.y - shoulder.y
+    );
+
+    const hipAnkleDistance = Math.hypot(
+        ankle.x - hip.x,
+        ankle.y - hip.y
+    );
+
+    const proportionsValid =
+        shoulderHipDistance > 0.04 &&
+        hipAnkleDistance > 0.04 &&
+        bodyTilt <= CONFIG.maxBodyTiltDegrees;
+
+    const floorDifference = Math.abs(wrist.y - ankle.y);
+
+    const floorAligned =
+        floorDifference <= CONFIG.maxFloorDifference;
+
+    const handShoulderDistance = Math.hypot(
+        wrist.x - shoulder.x,
+        wrist.y - shoulder.y
+    );
+
+    const handPlacementValid =
+        handShoulderDistance > 0.04 &&
+        handShoulderDistance < bodyLength * 0.9;
+
+    const valid =
+        floorAligned &&
+        proportionsValid &&
+        handPlacementValid;
+
+    let reason = "Postura correta. Desça dobrando os cotovelos.";
+
+    if (!floorAligned) {
+        reason =
+            "Alinhe as mãos e os pés com o chão; deixe o corpo inteiro visível.";
+    } else if (!proportionsValid) {
+        reason =
+            "Mantenha cabeça, costas, quadril e pernas alinhados.";
+    } else if (!handPlacementValid) {
+        reason =
+            "Ajuste as mãos abaixo da linha dos ombros.";
+    }
+
+    return {
+        valid,
+        reason,
+        angle: armAngle,
+        bodyTilt,
+        floorDifference
+    };
+}
+
+function processPose(landmarks, now) {
+    const pose = analyzePushUpPose(landmarks);
+
+    currentPoseValid = pose.valid;
+
+    if (!pose.valid) {
+        stableFrames = 0;
+
+        if (!waitingForPosition && repState === "down") {
+            setStatus(
+                "Mantenha o corpo visível para confirmar a flexão."
+            );
+        } else {
+            setStatus(pose.reason);
+        }
 
         return;
     }
 
-    flexoes++;
+    lastValidPoseAt = now;
+    stableFrames++;
 
-    pontuacao +=
-        pontosPorFlexao;
-
-    scoreElement.textContent =
-        pontuacao;
-
-    if (hp > 0) {
-
-        hp--;
+    if (stableFrames < CONFIG.requiredStableFrames) {
+        setStatus("Confirmando postura...");
+        return;
     }
 
-    counter.textContent =
-        flexoes;
+    if (waitingForPosition) {
+        if (pose.angle >= CONFIG.topAngle) {
+            waitingForPosition = false;
+            phaseActive = true;
+            repState = "top";
+            smoothedAngle = pose.angle;
+            downAt = 0;
 
-    atualizarHP();
+            setStatus(
+                "Posição correta! Desça controladamente."
+            );
+        } else {
+            setStatus(
+                "Entre na posição de flexão com os braços estendidos."
+            );
+        }
 
+        return;
+    }
 
-    /* EFEITO VISUAL DO INIMIGO */
+    smoothedAngle =
+        smoothedAngle === null
+            ? pose.angle
+            : smoothedAngle * 0.65 + pose.angle * 0.35;
 
-    enemyIcon.classList.remove(
-        "hit"
-    );
+    if (repState === "top") {
+        if (smoothedAngle <= CONFIG.bottomAngle) {
+            repState = "down";
+            downAt = now;
 
-    void enemyIcon.offsetWidth;
+            setStatus(
+                "Boa! Agora estenda os braços para completar."
+            );
+        } else {
+            setStatus(
+                "Postura válida. Desça até dobrar os cotovelos."
+            );
+        }
 
-    enemyIcon.classList.add(
-        "hit"
-    );
+        return;
+    }
 
-    setTimeout(() => {
+    if (repState === "down") {
+        const downDuration = now - downAt;
 
-        enemyIcon.classList.remove(
-            "hit"
+        if (downDuration > CONFIG.maxRepDuration) {
+            repState = "top";
+            downAt = 0;
+            smoothedAngle = pose.angle;
+
+            setStatus(
+                "Movimento reiniciado. Desça e suba de forma controlada."
+            );
+
+            return;
+        }
+
+        if (smoothedAngle >= CONFIG.topAngle) {
+            const enoughDuration =
+                downDuration >= CONFIG.minRepDuration;
+
+            const cooldownPassed =
+                now - lastRepAt >= CONFIG.cooldown;
+
+            repState = "top";
+            downAt = 0;
+            smoothedAngle = pose.angle;
+
+            if (
+                enoughDuration &&
+                cooldownPassed &&
+                phaseActive &&
+                currentPoseValid
+            ) {
+                lastRepAt = now;
+                registerPushUp();
+            } else {
+                setStatus(
+                    "Movimento muito rápido. Faça a flexão de forma controlada."
+                );
+            }
+        }
+    }
+}
+
+function handleLostPose() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    stableFrames = 0;
+    currentPoseValid = false;
+
+    if (waitingForPosition) {
+        setStatus(
+            "Não detectei seu corpo. Afaste a câmera e mostre o corpo inteiro."
         );
+    } else if (performance.now() - lastValidPoseAt > 700) {
+        setStatus(
+            "Corpo fora de visão. Volte para o enquadramento."
+        );
+    }
+}
 
-    }, 400);
+function resetRepDetection() {
+    repState = "top";
+    smoothedAngle = null;
+    lastRepAt = 0;
+    downAt = 0;
+    stableFrames = 0;
+    currentPoseValid = false;
+    lastValidPoseAt = 0;
+    waitingForPosition = true;
+    phaseActive = false;
+}
 
+function registerPushUp() {
+    if (
+        !phaseActive ||
+        waitingForPosition ||
+        hp <= 0
+    ) {
+        return;
+    }
 
-    /* EFEITO VISUAL DE ATAQUE */
+    pushUps++;
+    score += 100;
+    hp = Math.max(0, hp - 1);
+
+    counter.textContent = String(pushUps);
+    scoreElement.textContent = String(score);
+
+    updateHp();
+
+    if (enemyIcon) {
+        enemyIcon.classList.remove("hit");
+        void enemyIcon.offsetWidth;
+        enemyIcon.classList.add("hit");
+
+        window.setTimeout(
+            () => enemyIcon.classList.remove("hit"),
+            400
+        );
+    }
 
     if (hitEffect) {
-
-        hitEffect.classList.remove(
-            "show"
-        );
-
+        hitEffect.classList.remove("show");
         void hitEffect.offsetWidth;
+        hitEffect.classList.add("show");
 
-        hitEffect.classList.add(
-            "show"
+        window.setTimeout(
+            () => hitEffect.classList.remove("show"),
+            500
         );
-
-        setTimeout(() => {
-
-            hitEffect.classList.remove(
-                "show"
-            );
-
-        }, 500);
     }
 
-
-    status.textContent =
-        "💥 ATAQUE! Flexão " +
-        flexoes;
-
+    setStatus(`💥 ATAQUE! Flexão ${pushUps}`);
 
     if (hp <= 0) {
-
-        hp = 0;
-
-        hpText.textContent =
-            "DERROTADO!";
-
-        concluirFase();
+        completePhase();
     }
 }
 
+function completePhase() {
+    phaseActive = false;
+    waitingForPosition = true;
 
-/* =========================================
-   CONCLUIR FASE
-   ========================================= */
+    const phase = phases[currentPhaseIndex];
 
-function concluirFase() {
-
-    faseIniciada = false;
-
-    aguardandoPosicao = true;
-
-    const fase =
-        fases[faseAtual];
-
-
-    if (
-        faseAtual <
-        fases.length - 1
-    ) {
-
-        phaseCompleteIcon.textContent =
-            fase.icone;
-
+    if (currentPhaseIndex < phases.length - 1) {
+        phaseCompleteIcon.textContent = phase.icon;
         phaseCompleteText.textContent =
-            "Você derrotou o " +
-            fase.nome +
-            "!";
+            `Você derrotou o ${phase.name}!`;
 
         nextPhaseNumber.textContent =
-            "FASE " +
-            (faseAtual + 2);
+            `FASE ${currentPhaseIndex + 2}`;
 
-        phaseCompleteScreen.classList.add(
-            "show"
-        );
-
+        phaseCompleteScreen.classList.add("show");
     } else {
-
-        mostrarVitoria();
+        showVictory();
     }
 }
 
+function preparePhase() {
+    const phase = phases[currentPhaseIndex];
 
-/* =========================================
-   PREPARAR FASE
-   ========================================= */
+    hp = phase.hp;
+    maxHp = phase.hp;
+    pushUps = 0;
 
-function prepararFase() {
+    resetRepDetection();
 
-    const fase =
-        fases[faseAtual];
+    counter.textContent = "0";
+    scoreElement.textContent = String(score);
 
-    hp =
-        fase.vida;
+    phaseNumberElement.textContent = `FASE ${phase.number}`;
+    enemyNameElement.textContent = `${phase.icon} ${phase.name}`;
 
-    maxHP =
-        fase.vida;
-
-    flexoes = 0;
-
-    faseIniciada = false;
-
-    aguardandoPosicao = true;
-
-    estado = "cima";
-
-    anguloSuavizado = null;
-
-    ultimaFlexao = 0;
-
-    counter.textContent =
-        "0";
-
-    scoreElement.textContent =
-        pontuacao;
-
-    phaseNumberElement.textContent =
-        "FASE " +
-        fase.numero;
-
-    enemyNameElement.textContent =
-        fase.icone +
-        " " +
-        fase.nome;
-
-    enemyIcon.textContent =
-        fase.icone;
-
-
-    const enemyTitle =
-        document.querySelector(
-            ".enemy-info h2"
-        );
+    if (enemyIcon) {
+        enemyIcon.textContent = phase.icon;
+    }
 
     if (enemyTitle) {
-
-        enemyTitle.textContent =
-            fase.nome;
+        enemyTitle.textContent = phase.name;
     }
 
+    updateHp();
 
-    atualizarHP();
-
-    status.textContent =
-        "Posicione seu corpo na câmera.";
+    setStatus(
+        cameraStarted
+            ? "Fique de lado, com o corpo inteiro visível e as mãos no chão."
+            : "Inicie a câmera para preparar sua posição."
+    );
 }
 
+function updateHp() {
+    const percentage =
+        maxHp > 0 ? (hp / maxHp) * 100 : 0;
 
-/* =========================================
-   HP
-   ========================================= */
-
-function atualizarHP() {
-
-    const porcentagem =
-        (hp / maxHP) * 100;
-
-    hpBar.style.width =
-        porcentagem + "%";
+    hpBar.style.width = `${percentage}%`;
 
     hpText.textContent =
-        hp +
-        " / " +
-        maxHP +
-        " HP";
+        hp <= 0 ? "DERROTADO!" : `${hp} / ${maxHp} HP`;
+
+    if (hpProgress) {
+        hpProgress.setAttribute(
+            "aria-valuemax",
+            String(maxHp)
+        );
+
+        hpProgress.setAttribute(
+            "aria-valuenow",
+            String(hp)
+        );
+    }
 }
 
+function showVictory() {
+    finalScore.textContent = String(score);
+    victoryScreen.classList.add("show");
+}
 
-/* =========================================
-   VITÓRIA
-   ========================================= */
+function resetGame({ showMenu = false } = {}) {
+    score = 0;
+    currentPhaseIndex = 0;
 
-function mostrarVitoria() {
+    phaseCompleteScreen.classList.remove("show");
+    victoryScreen.classList.remove("show");
 
-    finalScore.textContent =
-        flexoes;
+    preparePhase();
 
-    victoryScreen.classList.add(
-        "show"
+    scoreElement.textContent = "0";
+
+    if (showMenu) {
+        startMenu.classList.remove("hidden");
+
+        setStatus(
+            "Pronto para jogar. Comece a fase e ligue a câmera."
+        );
+    }
+}
+
+startButton.addEventListener("click", startCamera);
+
+menuStartButton.addEventListener("click", async () => {
+    if (!detector) {
+        setStatus("O detector ainda está carregando.");
+        return;
+    }
+
+    startMenu.classList.add("hidden");
+
+    preparePhase();
+
+    await startCamera();
+});
+
+nextPhaseButton.addEventListener("click", () => {
+    phaseCompleteScreen.classList.remove("show");
+
+    currentPhaseIndex = Math.min(
+        currentPhaseIndex + 1,
+        phases.length - 1
     );
-}
 
+    preparePhase();
+});
 
-/* =========================================
-   BOTÃO DE CÂMERA
-   ========================================= */
-
-startButton.addEventListener(
-    "click",
-    async function () {
-
-        if (!poseLandmarker) {
-
-            status.textContent =
-                "Detector ainda carregando...";
-
-            return;
-        }
-
-        await iniciarCamera();
-    }
-);
-
-
-/* =========================================
-   BOTÃO DO MENU
-   ========================================= */
-
-menuStartButton.addEventListener(
-    "click",
-    async function () {
-
-        if (!poseLandmarker) {
-
-            status.textContent =
-                "Detector ainda carregando...";
-
-            return;
-        }
-
-        startMenu.classList.add(
-            "hidden"
-        );
-
-        prepararFase();
-
-        await iniciarCamera();
-    }
-);
-
-
-/* =========================================
-   PRÓXIMA FASE
-   ========================================= */
-
-nextPhaseButton.addEventListener(
-    "click",
-    function () {
-
-        phaseCompleteScreen.classList.remove(
-            "show"
-        );
-
-        faseAtual++;
-
-        prepararFase();
-    }
-);
-
-
-/* =========================================
-   RESET
-   ========================================= */
-
-resetButton.addEventListener(
-    "click",
-    function () {
-
-        flexoes = 0;
-
-        pontuacao = 0;
-
-        faseAtual = 0;
-
-        hp =
-            fases[0].vida;
-
-        maxHP =
-            fases[0].vida;
-
-        faseIniciada = false;
-
-        aguardandoPosicao = true;
-
-        estado = "cima";
-
-        anguloSuavizado = null;
-
-        ultimaFlexao = 0;
-
-        counter.textContent =
-            "0";
-
-        scoreElement.textContent =
-            "0";
-
-        phaseCompleteScreen.classList.remove(
-            "show"
-        );
-
-        victoryScreen.classList.remove(
-            "show"
-        );
-
-        prepararFase();
-
-        status.textContent =
-            "Posicione seu corpo na câmera.";
-    }
-);
-
-
-/* =========================================
-   JOGAR NOVAMENTE
-   ========================================= */
+resetButton.addEventListener("click", () => {
+    resetGame();
+});
 
 if (victoryReset) {
-
-    victoryReset.addEventListener(
-        "click",
-        function () {
-
-            victoryScreen.classList.remove(
-                "show"
-            );
-
-            faseAtual = 0;
-
-            pontuacao = 0;
-
-            prepararFase();
-
-            startMenu.classList.remove(
-                "hidden"
-            );
-        }
-    );
+    victoryReset.addEventListener("click", () => {
+        resetGame({ showMenu: true });
+    });
 }
 
+window.addEventListener("beforeunload", () => {
+    stopCamera();
+    detector?.close();
+});
 
-/* =========================================
-   INICIALIZAÇÃO
-   ========================================= */
+startButton.disabled = true;
+menuStartButton.disabled = true;
 
-prepararFase();
-
-criarDetector();
+preparePhase();
+createDetector();
